@@ -33,7 +33,7 @@ func NewConnection(cfg *config.Config) (*DB, error) {
 	}
 
 	// Auto-migrate models
-	if err := db.AutoMigrate(&models.Users{}); err != nil {
+	if err := db.AutoMigrate(&models.Users{}, &models.Bills{}, &models.Items{}, &models.Participants{}, &models.ItemAssignments{}); err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %v", err)
 	}
 
