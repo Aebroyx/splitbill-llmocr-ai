@@ -1,118 +1,107 @@
+'use client';
+
 // src/app/page.tsx
-import Image from 'next/image';
-import Counter from '../components/Counter';
+import { useState } from 'react';
+import BillCreator from '../components/BillCreator';
+import { Toaster } from 'react-hot-toast';
+import { Bill } from '../lib/services/billService';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        {/* my component example */}
-        {/* start */}
-        <section className='font-[family-name:var(--font-geist-mono)]'>
-          <h1>Welcome to Sangalabror Pujianto's next.js kit / template!</h1>
-          <p className='mb-4'>
-            In this kit and template libraries include:
-          </p>
-          <ul className="list-inside list-disc text-sm text-center sm:text-left">
-            <li>React</li>
-            <li>Next.js</li>
-            <li>Tailwind CSS</li>
-            <li>Redux Toolkit</li>
-            <li>React Hot Toast</li>
-          </ul>
-          <Counter />
-        </section>
-        {/* end */}
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [bills, setBills] = useState<Bill[]>([]);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          >
-            Read our docs
-          </a>
+  const handleCreateBill = (newBill: Bill) => {
+    setBills(prevBills => [newBill, ...prevBills]);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Toast Notifications */}
+      <Toaster 
+        position="top-center"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#10B981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#EF4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <h1 className="text-xl font-bold text-gray-900">SplitBill</h1>
+            <div className="flex items-center space-x-4">
+              {/* Add user profile or settings icon here later */}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-2xl mx-auto">
+          {/* Welcome Section */}
+          <div className="text-center mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+              Welcome to SplitBill
+            </h2>
+            <p className="text-gray-600 text-base sm:text-lg">
+              Create and manage your bills with ease
+            </p>
+          </div>
+
+          {/* Bill Creator */}
+          <div className="mb-8">
+            <BillCreator onCreateBill={handleCreateBill} />
+          </div>
+
+          {/* Recent Bills Section */}
+          {/* <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Recent Bills
+            </h3>
+            {bills.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500 text-sm">
+                  No bills created yet. Start by creating your first bill above!
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {bills.map((bill) => (
+                  <div key={bill.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <h4 className="font-medium text-gray-900">{bill.name}</h4>
+                      <p className="text-sm text-gray-500">
+                        Tax: ${bill.tax_amount.toFixed(2)} | Tip: ${bill.tip_amount.toFixed(2)}
+                      </p>
+                    </div>
+                    <span className="text-xs text-gray-400">
+                      {new Date(bill.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div> */}
         </div>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
