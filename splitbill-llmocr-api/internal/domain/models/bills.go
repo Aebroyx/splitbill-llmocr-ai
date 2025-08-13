@@ -131,3 +131,18 @@ type BillSummary struct {
 	TotalBill         float64            `json:"total_bill"`
 	ParticipantShares map[string]float64 `json:"participant_shares"`
 }
+
+// ExtractedItemData represents the structure of extracted item data from LLM
+type ExtractedItemData struct {
+	Items []ExtractedItem `json:"items"`
+	Tax   float64         `json:"tax"`
+	Tip   float64         `json:"tip"`
+	Total float64         `json:"total"`
+}
+
+// ExtractedItem represents a single item extracted from the bill
+type ExtractedItem struct {
+	Name     string  `json:"name"`
+	Price    float64 `json:"price"`
+	Quantity int     `json:"quantity"`
+}

@@ -31,9 +31,11 @@ func main() {
 
 	// Initialize services
 	userService := services.NewUserService(db.DB, cfg)
+	billService := services.NewBillService(db.DB)
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(userService)
+	billHandler := handlers.NewBillHandler(billService)
 
 	// Initialize router
 	router := gin.New() // Use gin.New() instead of gin.Default() to avoid default middleware
@@ -69,24 +71,37 @@ func main() {
 		c.Next()
 	})
 
-	// Public routes
-	public := router.Group("/api")
+	// Serve static files (for uploaded images)
+	router.Static("/uploads", "./uploads")
+
+	// All API routes
+	api := router.Group("/api")
 	{
-		// Auth routes
-		auth := public.Group("/auth")
+		// Public routes
+		auth := api.Group("/auth")
 		{
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
 		}
-	}
 
-	// Protected routes
-	protected := router.Group("/api")
-	protected.Use(middleware.Auth(cfg.JWTSecret, db.DB))
-	{
-		// Add your protected routes here
-		protected.GET("/me", authHandler.GetMe)
-		protected.POST("/auth/logout", authHandler.Logout)
+		bills := api.Group("/bills")
+		{
+			bills.POST("/", billHandler.CreateBill)
+			bills.GET("/:id", billHandler.GetBill)
+			bills.POST("/:id/image", billHandler.UploadBillImage)
+			bills.GET("/:id/summary", billHandler.GetBillSummary)
+			bills.POST("/:id/participants", billHandler.AddParticipant)
+			bills.POST("/:id/assign-items", billHandler.AssignItemToParticipant)
+			bills.POST("/:id/process-data", billHandler.ProcessExtractedData)
+		}
+
+		// Protected routes (with auth middleware)
+		protected := api.Group("")
+		protected.Use(middleware.Auth(cfg.JWTSecret, db.DB))
+		{
+			protected.GET("/me", authHandler.GetMe)
+			protected.POST("/auth/logout", authHandler.Logout)
+		}
 	}
 
 	// Start server
