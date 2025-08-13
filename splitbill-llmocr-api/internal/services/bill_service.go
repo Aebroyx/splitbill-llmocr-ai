@@ -155,6 +155,7 @@ func (s *BillService) ProcessExtractedData(billID uuid.UUID, extractedData strin
 	// Parse the extracted data
 	var extractedItems models.ExtractedItemData
 	if err := json.Unmarshal([]byte(extractedData), &extractedItems); err != nil {
+		fmt.Printf("Failed to parse JSON: %v\n", err)
 		return fmt.Errorf("failed to parse extracted data: %w", err)
 	}
 

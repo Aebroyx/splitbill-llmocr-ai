@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -167,20 +168,63 @@ func (h *BillHandler) ProcessExtractedData(c *gin.Context) {
 	billIDStr := c.Param("id")
 	billID, err := uuid.Parse(billIDStr)
 	if err != nil {
+		fmt.Printf("UUID parse error: %v\n", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid bill ID"})
 		return
 	}
 
-	var req struct {
-		ExtractedData string `json:"extracted_data" binding:"required"`
+	// Read the raw body first
+	body, err := c.GetRawData()
+	if err != nil {
+		fmt.Printf("Error reading raw body: %v\n", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read request body"})
+		return
 	}
+	fmt.Printf("Raw request body: %s\n", string(body))
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid request: %v", err)})
+	// Parse the JSON manually since we already consumed the body
+	var rawData map[string]interface{}
+	if err := json.Unmarshal(body, &rawData); err != nil {
+		fmt.Printf("JSON unmarshal error: %v\n", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid JSON: %v", err)})
 		return
 	}
 
-	if err := h.billService.ProcessExtractedData(billID, req.ExtractedData); err != nil {
+	// Declare variable for extracted data
+	var extractedDataStr string
+
+	// Check if this is the direct data structure from n8n
+	if code, exists := rawData["code"]; exists && code == "API_SPLITBILL_LLMOCR" {
+		fmt.Printf("Detected direct n8n data structure\n")
+
+		// Convert the entire data to JSON string for processing
+		extractedDataBytes, err := json.Marshal(rawData)
+		if err != nil {
+			fmt.Printf("Error marshaling data: %v\n", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process data"})
+			return
+		}
+		extractedDataStr = string(extractedDataBytes)
+	} else {
+		// Fallback: check if extracted_data field exists
+		extractedData, exists := rawData["extracted_data"]
+		if !exists {
+			fmt.Printf("Missing extracted_data field. Available fields: %v\n", rawData)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Missing required field: extracted_data"})
+			return
+		}
+
+		// Convert to string
+		var ok bool
+		extractedDataStr, ok = extractedData.(string)
+		if !ok {
+			fmt.Printf("extracted_data is not a string, it's: %T\n", extractedData)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "extracted_data must be a string"})
+			return
+		}
+	}
+
+	if err := h.billService.ProcessExtractedData(billID, extractedDataStr); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to process extracted data: %v", err)})
 		return
 	}
