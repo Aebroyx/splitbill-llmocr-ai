@@ -32,10 +32,62 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+/* Mobile-specific improvements */
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  
+  /* Prevent zoom on input focus on iOS */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  textarea,
+  select {
+    font-size: 16px;
+  }
+  
+  /* Smooth scrolling for mobile */
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Better touch targets for mobile */
+  button, 
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Custom color utilities for primary colors */
+@layer utilities {
+  .focus\:ring-primary:focus {
+    --tw-ring-color: #8A73F9;
+  }
+  
+  .focus\:border-primary:focus {
+    border-color: #8A73F9;
+  }
+  
+  .text-primary {
+    color: #8A73F9;
+  }
+  
+  .bg-primary {
+    background-color: #8A73F9;
+  }
+  
+  .hover\:bg-primary-dark:hover {
+    background-color: #5F4AD3;
+  }
+  
+  .bg-primary-dark {
+    background-color: #5F4AD3;
   }
 }
