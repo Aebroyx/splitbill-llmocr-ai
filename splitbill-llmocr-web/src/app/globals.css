@@ -7,11 +7,11 @@
   --background: #ffffff;
   --foreground: #171717;
   --primary: #3B82F6;
-  --secondary: #E2F973;
+  --secondary: #8bd450;
   --primary-light: #BFA7FF;
   --secondary-light: #F0FFB3;
   --primary-dark: #2563EB;
-  --secondary-dark: #B0D94D;
+  --secondary-dark: #3f6d4e;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -19,11 +19,11 @@
     --background: #0a0a0a;
     --foreground: #ededed;
     --primary: #8A73F9;
-    --secondary: #E2F973;
+    --secondary: #8bd450;
     --primary-light: #BFA7FF;
     --secondary-light: #F0FFB3;
     --primary-dark: #5F4AD3;
-    --secondary-dark: #B0D94D;
+    --secondary-dark: #3f6d4e;
   }
 }
 

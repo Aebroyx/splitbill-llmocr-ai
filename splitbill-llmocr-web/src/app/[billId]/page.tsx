@@ -75,59 +75,49 @@ export default function BillPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Load bill data
+        // Load bill data first
         const billData = await billService.getBillById(billId);
         setBill(billData);
         
-        // Load participants first
-        let participantsData: any[] = [];
-        try {
-          participantsData = await billService.getParticipants(billId);
-          setParticipants(participantsData);
-        } catch (error) {
-          console.error('Error loading participants:', error);
-          // Set empty array if participants can't be loaded
-          setParticipants([]);
-        }
-        
-        // If bill is already completed, load items and update billWithItems
+        // If bill is already completed, load everything at once
         if (billData.status === 'completed') {
           try {
             const billWithItemsData = await billService.getBillWithItems(billId);
             setBillWithItems(billWithItemsData);
+            setParticipants(billWithItemsData.participants || []);
             
-            // Only update participants if we didn't get them from getParticipants
-            if (participantsData.length === 0 && billWithItemsData.participants) {
-              setParticipants(billWithItemsData.participants);
-            }
-          } catch (error) {
-            console.error('Error loading bill with items:', error);
-          }
-        }
-        
-        // Load item assignments (only if we have participants)
-        if (participantsData.length > 0) {
-          try {
+            // Load item assignments
             const assignmentsData = await billService.getItemAssignments(billId);
-            
             if (assignmentsData && Array.isArray(assignmentsData)) {
               const mappedAssignments = assignmentsData.map(assignment => ({
                 itemId: assignment.item_id,
                 participantId: assignment.participant_id
               }));
-              
               setItemAssignments(mappedAssignments);
             } else {
-              // If no assignments data, set empty assignments
               setItemAssignments([]);
             }
           } catch (error) {
-            console.error('Error loading item assignments:', error);
-            // Set empty array if assignments can't be loaded
+            console.error('Error loading bill with items:', error);
+            // Fallback to loading participants separately
+            try {
+              const participantsData = await billService.getParticipants(billId);
+              setParticipants(participantsData);
+            } catch (participantError) {
+              console.error('Error loading participants:', participantError);
+              setParticipants([]);
+            }
             setItemAssignments([]);
           }
         } else {
-          // No participants found, set empty item assignments
+          // Bill not completed, only load participants
+          try {
+            const participantsData = await billService.getParticipants(billId);
+            setParticipants(participantsData);
+          } catch (error) {
+            console.error('Error loading participants:', error);
+            setParticipants([]);
+          }
           setItemAssignments([]);
         }
       } catch (error) {
@@ -688,14 +678,14 @@ export default function BillPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={startCamera}
-                      className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                      className="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                     >
                       <CameraIcon className="w-4 h-4" />
                       Start Camera
                     </button>
                     <button
                       onClick={capturePhoto}
-                      className="flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                      className="flex-1 px-4 py-2 bg-secondary hover:bg-secondary-dark text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                     >
                       <PhotoIcon className="w-4 h-4" />
                       Capture
