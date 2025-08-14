@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { billService, Bill, BillWithItems, BillParticipant } from '../../lib/services/billService';
-import { CameraIcon, PhotoIcon, XMarkIcon, ArrowLeftIcon, ExclamationTriangleIcon, UserGroupIcon, DocumentTextIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { CameraIcon, PhotoIcon, XMarkIcon, ArrowLeftIcon, ExclamationTriangleIcon, UserGroupIcon, DocumentTextIcon, XCircleIcon, PencilIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { useRef } from 'react';
 import { useBillStatus } from '../../lib/hooks/useBillStatus';
@@ -347,7 +347,16 @@ export default function BillPage() {
           <>
             {/* Bill Info */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">{bill?.name}</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-gray-900">{bill?.name}</h2>
+                <button
+                  onClick={startEditingTaxTip}
+                  className="text-primary hover:text-primary-dark hover:bg-primary/10 p-1.5 rounded-lg transition-colors flex items-center justify-center"
+                  title="Edit tax and tip amounts"
+                >
+                  <PencilIcon className="w-4 h-4" />
+                </button>
+              </div>
               
               {editingTaxTip ? (
                 // Edit Mode for Tax and Tip
@@ -357,13 +366,13 @@ export default function BillPage() {
                     <div className="flex gap-2">
                       <button
                         onClick={saveTaxTipEdit}
-                        className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-medium transition-colors"
+                        className="px-3 py-1 bg-primary hover:bg-primary-dark text-white rounded text-sm font-medium transition-colors"
                       >
                         Save
                       </button>
                       <button
                         onClick={cancelEditingTaxTip}
-                        className="px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded text-sm font-medium transition-colors"
+                        className="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded text-sm font-medium transition-colors"
                       >
                         Cancel
                       </button>
@@ -381,7 +390,7 @@ export default function BillPage() {
                         min="0"
                         value={editTaxTipData.tax_amount}
                         onChange={(e) => setEditTaxTipData({...editTaxTipData, tax_amount: parseFloat(e.target.value) || 0})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-primary focus:ring-primary"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:border-primary focus:ring-primary"
                       />
                     </div>
                     <div>
@@ -394,7 +403,7 @@ export default function BillPage() {
                         min="0"
                         value={editTaxTipData.tip_amount}
                         onChange={(e) => setEditTaxTipData({...editTaxTipData, tip_amount: parseFloat(e.target.value) || 0})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-primary focus:ring-primary"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:border-primary focus:ring-primary"
                       />
                     </div>
                   </div>
@@ -402,33 +411,17 @@ export default function BillPage() {
               ) : (
                 // Display Mode for Tax and Tip
                 <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                  <div className="flex items-center justify-between">
+                  <div>
                     <span className="text-gray-500">Tax Amount:</span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">
-                        ${bill?.tax_amount ? bill.tax_amount.toFixed(2) : '0.00'}
-                      </span>
-                      <button
-                        onClick={startEditingTaxTip}
-                        className="text-blue-600 hover:text-blue-700 text-xs"
-                      >
-                        Edit
-                      </button>
-                    </div>
+                    <span className="ml-2 font-medium text-gray-900">
+                      ${bill?.tax_amount ? bill.tax_amount.toFixed(2) : '0.00'}
+                    </span>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div>
                     <span className="text-gray-500">Tip Amount:</span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">
-                        ${bill?.tip_amount ? bill.tip_amount.toFixed(2) : '0.00'}
-                      </span>
-                      <button
-                        onClick={startEditingTaxTip}
-                        className="text-blue-600 hover:text-blue-700 text-xs"
-                      >
-                        Edit
-                      </button>
-                    </div>
+                    <span className="ml-2 font-medium text-gray-900">
+                      ${bill?.tip_amount ? bill.tip_amount.toFixed(2) : '0.00'}
+                    </span>
                   </div>
                 </div>
               )}
@@ -468,13 +461,13 @@ export default function BillPage() {
                             <div className="flex gap-2">
                               <button
                                 onClick={() => saveItemEdit(item.id)}
-                                className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-medium transition-colors"
+                                className="px-3 py-1 bg-primary hover:bg-primary-dark text-white rounded text-sm font-medium transition-colors"
                               >
                                 Save
                               </button>
                               <button
                                 onClick={cancelEditingItem}
-                                className="px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded text-sm font-medium transition-colors"
+                                className="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded text-sm font-medium transition-colors"
                               >
                                 Cancel
                               </button>
@@ -490,7 +483,7 @@ export default function BillPage() {
                                 type="text"
                                 value={editItemData.name}
                                 onChange={(e) => setEditItemData({...editItemData, name: e.target.value})}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:border-primary focus:ring-primary"
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded text-gray-900 focus:border-primary focus:ring-primary"
                               />
                             </div>
                             <div>
@@ -503,7 +496,7 @@ export default function BillPage() {
                                 min="0"
                                 value={editItemData.price}
                                 onChange={(e) => setEditItemData({...editItemData, price: parseFloat(e.target.value) || 0})}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:border-primary focus:ring-primary"
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded text-gray-900 focus:border-primary focus:ring-primary"
                               />
                             </div>
                             <div>
@@ -515,7 +508,7 @@ export default function BillPage() {
                                 min="1"
                                 value={editItemData.quantity}
                                 onChange={(e) => setEditItemData({...editItemData, quantity: parseInt(e.target.value) || 1})}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:border-primary focus:ring-primary"
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded text-gray-900 focus:border-primary focus:ring-primary"
                               />
                             </div>
                           </div>
@@ -537,12 +530,13 @@ export default function BillPage() {
                             <span className="font-semibold text-gray-900">
                               ${(item.price * item.quantity).toFixed(2)}
                             </span>
-                            <button
-                              onClick={() => startEditingItem(item)}
-                              className="px-3 py-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded text-sm font-medium transition-colors"
-                            >
-                              Edit
-                            </button>
+                                                         <button
+                               onClick={() => startEditingItem(item)}
+                               className="text-primary hover:text-primary-dark hover:bg-primary/10 p-1.5 rounded-lg transition-colors flex items-center justify-center"
+                               title="Edit item"
+                             >
+                               <PencilIcon className="w-4 h-4" />
+                             </button>
                           </div>
                         </div>
                       )}
