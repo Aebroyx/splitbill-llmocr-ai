@@ -35,43 +35,36 @@ export default function ParticipantManager({
   const [editingParticipant, setEditingParticipant] = useState<number | null>(null);
   const [editName, setEditName] = useState('');
 
-  // Debug logging
-  console.log('ParticipantManager received:', {
-    billId,
-    itemsCount: items?.length || 0,
-    participantsCount: participants?.length || 0,
-    items: items,
-    participants: participants
-  });
-
   // Load initial item assignments from props
   useEffect(() => {
-    console.log('ParticipantManager: Setting initial item assignments from props');
-    // This will be set by the parent component
-  }, []);
+    if (initialItemAssignments) {
+      setItemAssignments(initialItemAssignments);
+    }
+  }, [initialItemAssignments]);
 
   // Sync local itemAssignments with prop changes
   useEffect(() => {
-    console.log('ParticipantManager: Updating itemAssignments from props:', initialItemAssignments);
-    setItemAssignments(initialItemAssignments);
+    if (initialItemAssignments) {
+      setItemAssignments(initialItemAssignments);
+    }
   }, [initialItemAssignments]);
 
   // Debug logging for tax and tip calculations
   useEffect(() => {
     if (bill && participants.length > 0) {
-      console.log('Tax and Tip Distribution Debug:', {
-        taxAmount: bill.tax_amount,
-        tipAmount: bill.tip_amount,
-        totalTaxTip: bill.tax_amount + bill.tip_amount,
-        participantCount: participants.length,
-        taxTipPerPerson: getTaxAndTipPerParticipant(),
-        participants: participants.map(p => ({
-          name: p.name,
-          itemTotal: getParticipantTotal(p.id),
-          taxTipShare: getTaxAndTipPerParticipant(),
-          finalTotal: getParticipantTotalWithTaxTip(p.id)
-        }))
-      });
+      // console.log('Tax and Tip Distribution Debug:', {
+      //   taxAmount: bill.tax_amount,
+      //   tipAmount: bill.tip_amount,
+      //   totalTaxTip: bill.tax_amount + bill.tip_amount,
+      //   participantCount: participants.length,
+      //   taxTipPerPerson: getTaxAndTipPerParticipant(),
+      //   participants: participants.map(p => ({
+      //     name: p.name,
+      //     itemTotal: getParticipantTotal(p.id),
+      //     taxTipShare: getTaxAndTipPerParticipant(),
+      //     finalTotal: getParticipantTotalWithTaxTip(p.id)
+      //   }))
+      // });
     }
   }, [bill, participants, itemAssignments]);
 
@@ -81,8 +74,6 @@ export default function ParticipantManager({
       return;
     }
 
-    console.log('Adding participant:', { billId, name: newParticipantName.trim() });
-
     try {
       const newParticipant = await billService.addParticipant(billId, {
         name: newParticipantName.trim(),
@@ -90,12 +81,12 @@ export default function ParticipantManager({
         share_of_common_costs: 0
       });
       
-      console.log('Participant added successfully:', newParticipant);
-      
-      onParticipantsChange([...participants, newParticipant]);
-      setNewParticipantName('');
-      setIsAddingParticipant(false);
-      toast.success('Participant added successfully!');
+      if (newParticipant) {
+        onParticipantsChange([...participants, newParticipant]);
+        setNewParticipantName('');
+        setIsAddingParticipant(false);
+        toast.success('Participant added successfully!');
+      }
     } catch (error) {
       console.error('Error adding participant:', error);
       toast.error('Failed to add participant');
@@ -123,20 +114,14 @@ export default function ParticipantManager({
   };
 
   const handleRemoveParticipant = async (participantId: number) => {
-    console.log('Removing participant:', { participantId, billId });
-    
     try {
       await billService.deleteParticipant(billId, participantId);
       
-      console.log('Participant deleted successfully from backend');
+      // Remove participant from local state
+      onParticipantsChange(participants.filter(p => p.id !== participantId));
       
-      const updatedParticipants = participants.filter(p => p.id !== participantId);
-      onParticipantsChange(updatedParticipants);
-      
-      // Remove item assignments for this participant
-      const updatedAssignments = itemAssignments.filter(a => a.participantId !== participantId);
-      setItemAssignments(updatedAssignments);
-      onItemAssignmentsChange(updatedAssignments);
+      // Remove all item assignments for this participant
+      onItemAssignmentsChange(itemAssignments.filter(assignment => assignment.participantId !== participantId));
       
       toast.success('Participant removed!');
     } catch (error) {
@@ -146,16 +131,13 @@ export default function ParticipantManager({
   };
 
   const handleItemAssignment = async (itemId: number, participantId: number) => {
-    console.log('Handling item assignment:', { itemId, participantId, billId });
-    
-    const existingAssignment = itemAssignments.find(
-      a => a.itemId === itemId && a.participantId === participantId
-    );
+    try {
+      const existingAssignment = itemAssignments.find(
+        a => a.itemId === itemId && a.participantId === participantId
+      );
 
-    if (existingAssignment) {
-      // Remove assignment
-      console.log('Removing existing assignment');
-      try {
+      if (existingAssignment) {
+        // Remove assignment
         await billService.deleteItemAssignment(billId, itemId, participantId);
         const updatedAssignments = itemAssignments.filter(
           a => !(a.itemId === itemId && a.participantId === participantId)
@@ -163,24 +145,18 @@ export default function ParticipantManager({
         setItemAssignments(updatedAssignments);
         onItemAssignmentsChange(updatedAssignments);
         toast.success('Item assignment removed');
-      } catch (error) {
-        console.error('Error removing item assignment:', error);
-        toast.error('Failed to remove item assignment');
-      }
-    } else {
-      // Add assignment
-      console.log('Adding new assignment');
-      try {
+      } else {
+        // Add assignment
         await billService.assignItemToParticipant(billId, itemId, participantId);
         const newAssignment = { itemId, participantId };
         const updatedAssignments = [...itemAssignments, newAssignment];
         setItemAssignments(updatedAssignments);
         onItemAssignmentsChange(updatedAssignments);
         toast.success('Item assigned successfully!');
-      } catch (error) {
-        console.error('Error assigning item:', error);
-        toast.error('Failed to assign item');
       }
+    } catch (error) {
+      console.error('Error assigning item:', error);
+      toast.error('Failed to assign item');
     }
   };
 
@@ -188,8 +164,6 @@ export default function ParticipantManager({
     const isAssigned = itemAssignments.some(
       a => a.itemId === itemId && a.participantId === participantId
     );
-    console.log(`Checking assignment: item ${itemId} -> participant ${participantId}: ${isAssigned}`);
-    console.log('Current itemAssignments:', itemAssignments);
     return isAssigned;
   };
 
@@ -365,7 +339,7 @@ export default function ParticipantManager({
                 </span>
                 <button
                   onClick={() => handleEditParticipant(participant.id, participant.name)}
-                  className="text-primary hover:text-primary-dark hover:bg-primary/10 p-1.5 rounded-lg transition-colors flex items-center justify-center"
+                  className="text-primary hover:text-primary-dark hover:bg-indigo-50 p-1.5 rounded-lg transition-colors flex items-center justify-center"
                   title="Edit participant name"
                 >
                   <PencilIcon className="w-4 h-4" />

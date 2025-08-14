@@ -109,23 +109,16 @@ export default function BillPage() {
         if (participantsData.length > 0) {
           try {
             const assignmentsData = await billService.getItemAssignments(billId);
-            console.log('Loaded assignments from backend:', assignmentsData);
-            console.log('Assignments data type:', typeof assignmentsData);
-            console.log('Assignments data length:', assignmentsData?.length);
             
             if (assignmentsData && Array.isArray(assignmentsData)) {
-              const mappedAssignments = assignmentsData.map(assignment => {
-                console.log('Processing assignment:', assignment);
-                return {
-                  itemId: assignment.item_id,
-                  participantId: assignment.participant_id
-                };
-              });
+              const mappedAssignments = assignmentsData.map(assignment => ({
+                itemId: assignment.item_id,
+                participantId: assignment.participant_id
+              }));
               
-              console.log('Mapped assignments for frontend:', mappedAssignments);
               setItemAssignments(mappedAssignments);
             } else {
-              console.log('Assignments data is not an array or is null/undefined');
+              // If no assignments data, set empty assignments
               setItemAssignments([]);
             }
           } catch (error) {
@@ -134,7 +127,7 @@ export default function BillPage() {
             setItemAssignments([]);
           }
         } else {
-          console.log('No participants found, setting empty item assignments');
+          // No participants found, set empty item assignments
           setItemAssignments([]);
         }
       } catch (error) {
@@ -403,7 +396,7 @@ export default function BillPage() {
                 <h2 className="text-2xl font-bold text-gray-900">{bill?.name}</h2>
                 <button
                   onClick={startEditingTaxTip}
-                  className="text-primary hover:text-primary-dark hover:bg-primary/10 p-1.5 rounded-lg transition-colors flex items-center justify-center"
+                  className="text-primary hover:text-primary-dark hover:bg-indigo-50 p-1.5 rounded-lg transition-colors flex items-center justify-center"
                   title="Edit tax and tip amounts"
                 >
                   <PencilIcon className="w-4 h-4" />
@@ -582,11 +575,11 @@ export default function BillPage() {
                             <span className="font-semibold text-gray-900">
                               ${(item.price * item.quantity).toFixed(2)}
                             </span>
-                                                         <button
+                              <button
                                onClick={() => startEditingItem(item)}
-                               className="text-primary hover:text-primary-dark hover:bg-primary/10 p-1.5 rounded-lg transition-colors flex items-center justify-center"
+                               className="text-primary hover:text-primary-dark hover:bg-indigo-50 p-1.5 rounded-lg transition-colors flex items-center justify-center"
                                title="Edit item"
-                             >
+                              >
                                <PencilIcon className="w-4 h-4" />
                              </button>
                           </div>
