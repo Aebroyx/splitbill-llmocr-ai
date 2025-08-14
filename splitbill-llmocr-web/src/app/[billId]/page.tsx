@@ -75,66 +75,49 @@ export default function BillPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Load bill data
+        // Load bill data first
         const billData = await billService.getBillById(billId);
         setBill(billData);
         
-        // Load participants first
-        let participantsData: any[] = [];
-        try {
-          participantsData = await billService.getParticipants(billId);
-          setParticipants(participantsData);
-        } catch (error) {
-          console.error('Error loading participants:', error);
-          // Set empty array if participants can't be loaded
-          setParticipants([]);
-        }
-        
-        // If bill is already completed, load items and update billWithItems
+        // If bill is already completed, load everything at once
         if (billData.status === 'completed') {
           try {
             const billWithItemsData = await billService.getBillWithItems(billId);
             setBillWithItems(billWithItemsData);
+            setParticipants(billWithItemsData.participants || []);
             
-            // Only update participants if we didn't get them from getParticipants
-            if (participantsData.length === 0 && billWithItemsData.participants) {
-              setParticipants(billWithItemsData.participants);
-            }
-          } catch (error) {
-            console.error('Error loading bill with items:', error);
-          }
-        }
-        
-        // Load item assignments (only if we have participants)
-        if (participantsData.length > 0) {
-          try {
+            // Load item assignments
             const assignmentsData = await billService.getItemAssignments(billId);
-            console.log('Loaded assignments from backend:', assignmentsData);
-            console.log('Assignments data type:', typeof assignmentsData);
-            console.log('Assignments data length:', assignmentsData?.length);
-            
             if (assignmentsData && Array.isArray(assignmentsData)) {
-              const mappedAssignments = assignmentsData.map(assignment => {
-                console.log('Processing assignment:', assignment);
-                return {
-                  itemId: assignment.item_id,
-                  participantId: assignment.participant_id
-                };
-              });
-              
-              console.log('Mapped assignments for frontend:', mappedAssignments);
+              const mappedAssignments = assignmentsData.map(assignment => ({
+                itemId: assignment.item_id,
+                participantId: assignment.participant_id
+              }));
               setItemAssignments(mappedAssignments);
             } else {
-              console.log('Assignments data is not an array or is null/undefined');
               setItemAssignments([]);
             }
           } catch (error) {
-            console.error('Error loading item assignments:', error);
-            // Set empty array if assignments can't be loaded
+            console.error('Error loading bill with items:', error);
+            // Fallback to loading participants separately
+            try {
+              const participantsData = await billService.getParticipants(billId);
+              setParticipants(participantsData);
+            } catch (participantError) {
+              console.error('Error loading participants:', participantError);
+              setParticipants([]);
+            }
             setItemAssignments([]);
           }
         } else {
-          console.log('No participants found, setting empty item assignments');
+          // Bill not completed, only load participants
+          try {
+            const participantsData = await billService.getParticipants(billId);
+            setParticipants(participantsData);
+          } catch (error) {
+            console.error('Error loading participants:', error);
+            setParticipants([]);
+          }
           setItemAssignments([]);
         }
       } catch (error) {
@@ -403,7 +386,7 @@ export default function BillPage() {
                 <h2 className="text-2xl font-bold text-gray-900">{bill?.name}</h2>
                 <button
                   onClick={startEditingTaxTip}
-                  className="text-primary hover:text-primary-dark hover:bg-primary/10 p-1.5 rounded-lg transition-colors flex items-center justify-center"
+                  className="text-primary hover:text-primary-dark hover:bg-indigo-50 p-1.5 rounded-lg transition-colors flex items-center justify-center"
                   title="Edit tax and tip amounts"
                 >
                   <PencilIcon className="w-4 h-4" />
@@ -582,11 +565,11 @@ export default function BillPage() {
                             <span className="font-semibold text-gray-900">
                               ${(item.price * item.quantity).toFixed(2)}
                             </span>
-                                                         <button
+                              <button
                                onClick={() => startEditingItem(item)}
-                               className="text-primary hover:text-primary-dark hover:bg-primary/10 p-1.5 rounded-lg transition-colors flex items-center justify-center"
+                               className="text-primary hover:text-primary-dark hover:bg-indigo-50 p-1.5 rounded-lg transition-colors flex items-center justify-center"
                                title="Edit item"
-                             >
+                              >
                                <PencilIcon className="w-4 h-4" />
                              </button>
                           </div>
@@ -695,14 +678,14 @@ export default function BillPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={startCamera}
-                      className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                      className="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                     >
                       <CameraIcon className="w-4 h-4" />
                       Start Camera
                     </button>
                     <button
                       onClick={capturePhoto}
-                      className="flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                      className="flex-1 px-4 py-2 bg-secondary hover:bg-secondary-dark text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                     >
                       <PhotoIcon className="w-4 h-4" />
                       Capture

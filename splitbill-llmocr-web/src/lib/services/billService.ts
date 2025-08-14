@@ -165,19 +165,19 @@ export const billService = {
 
   async getItemAssignments(billId: string): Promise<ItemAssignment[]> {
     try {
-      console.log('billService: Fetching item assignments for bill:', billId);
       const response = await axios.get(`${API_BASE_URL}/api/bills/${billId}/item-assignments`);
-      console.log('billService: Raw API response:', response);
-      console.log('billService: Response data:', response.data);
-      console.log('billService: Response data type:', typeof response.data);
-      console.log('billService: Response data length:', Array.isArray(response.data) ? response.data.length : 'not an array');
-      return response.data as ItemAssignment[];
-    } catch (error: any) {
-      console.error('billService: Error fetching item assignments:', error);
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+      
+      if (response.data && Array.isArray(response.data)) {
+        return response.data.map((assignment: any) => ({
+          item_id: assignment.item_id,
+          participant_id: assignment.participant_id
+        }));
       }
-      throw new Error('Failed to fetch item assignments');
+      
+      return [];
+    } catch (error) {
+      console.error('Error fetching item assignments:', error);
+      return [];
     }
   },
 
