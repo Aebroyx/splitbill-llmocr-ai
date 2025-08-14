@@ -11,13 +11,58 @@ export interface Bill {
   name: string;
   tax_amount: number;
   tip_amount: number;
+  status: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface BillWithItems extends Bill {
+  items?: BillItem[];
+  participants?: BillParticipant[];
+}
+
+export interface BillItem {
+  id: number;
+  bill_id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  created_at: string;
+}
+
+export interface BillParticipant {
+  id: number;
+  bill_id: string;
+  name: string;
+  payment_status: string;
+  share_of_common_costs: number;
+  created_at: string;
+}
+
+export interface BillStatus {
+  bill_id: string;
+  status: string;
 }
 
 export interface UploadImageResponse {
   message: string;
   image_url?: string;
+}
+
+export interface ItemAssignment {
+  item_id: number;
+  participant_id: number;
+}
+
+export interface UpdateItemPayload {
+  name?: string;
+  price?: number;
+  quantity?: number;
+}
+
+export interface UpdateBillPayload {
+  tax_amount?: number;
+  tip_amount?: number;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -79,6 +124,109 @@ export const billService = {
         throw new Error(error.response.data.message);
       }
       throw new Error('Failed to upload image');
+    }
+  },
+
+  async getBillStatus(billId: string): Promise<BillStatus> {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/bills/${billId}/status`);
+      return response.data as BillStatus;
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to fetch bill status');
+    }
+  },
+
+  async getBillWithItems(billId: string): Promise<BillWithItems> {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/bills/${billId}`);
+      return response.data as BillWithItems;
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to fetch bill with items');
+    }
+  },
+
+  async addParticipant(billId: string, participant: Omit<BillParticipant, 'id' | 'bill_id' | 'created_at'>): Promise<BillParticipant> {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/bills/${billId}/participants`, participant, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      return response.data as BillParticipant;
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to add participant');
+    }
+  },
+
+  async assignItemToParticipant(itemId: number, participantId: number): Promise<ItemAssignment> {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/bills/assign-items`, {
+        item_id: itemId,
+        participant_id: participantId,
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      return response.data as ItemAssignment;
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to assign item to participant');
+    }
+  },
+
+  async updateItem(itemId: number, updates: UpdateItemPayload): Promise<BillItem> {
+    try {
+      const response = await axios.put(`${API_BASE_URL}/api/items/${itemId}`, updates, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      return response.data as BillItem;
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to update item');
+    }
+  },
+
+  async updateBill(billId: string, updates: UpdateBillPayload): Promise<Bill> {
+    try {
+      const response = await axios.put(`${API_BASE_URL}/api/bills/${billId}`, updates, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      return response.data as Bill;
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to update bill');
+    }
+  },
+
+  async getBillSummary(billId: string): Promise<any> {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/bills/${billId}/summary`);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to fetch bill summary');
     }
   },
 };
