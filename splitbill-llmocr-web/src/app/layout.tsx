@@ -15,8 +15,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Create Next App by Sangalabror Pujianto",
-  description: "This is a kit and template for creating Next.js apps.",
+  title: "SplitBill - Split Bills with AI LLM-OCR",
+  description: "Easily split bills and expenses with friends using AI-powered LLM-OCR technology. Upload receipts, extract items, and divide costs automatically.",
 };
 
 export default function RootLayout({
