@@ -151,6 +151,36 @@ export const billService = {
     }
   },
 
+  async getParticipants(billId: string): Promise<BillParticipant[]> {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/bills/${billId}/participants`);
+      return response.data as BillParticipant[];
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to fetch participants');
+    }
+  },
+
+  async getItemAssignments(billId: string): Promise<ItemAssignment[]> {
+    try {
+      console.log('billService: Fetching item assignments for bill:', billId);
+      const response = await axios.get(`${API_BASE_URL}/api/bills/${billId}/item-assignments`);
+      console.log('billService: Raw API response:', response);
+      console.log('billService: Response data:', response.data);
+      console.log('billService: Response data type:', typeof response.data);
+      console.log('billService: Response data length:', Array.isArray(response.data) ? response.data.length : 'not an array');
+      return response.data as ItemAssignment[];
+    } catch (error: any) {
+      console.error('billService: Error fetching item assignments:', error);
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to fetch item assignments');
+    }
+  },
+
   async addParticipant(billId: string, participant: Omit<BillParticipant, 'id' | 'bill_id' | 'created_at'>): Promise<BillParticipant> {
     try {
       const response = await axios.post(`${API_BASE_URL}/api/bills/${billId}/participants`, participant, {
@@ -167,9 +197,9 @@ export const billService = {
     }
   },
 
-  async assignItemToParticipant(itemId: number, participantId: number): Promise<ItemAssignment> {
+  async assignItemToParticipant(billId: string, itemId: number, participantId: number): Promise<ItemAssignment> {
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/bills/assign-items`, {
+      const response = await axios.post(`${API_BASE_URL}/api/bills/${billId}/assign-items`, {
         item_id: itemId,
         participant_id: participantId,
       }, {
@@ -183,6 +213,38 @@ export const billService = {
         throw new Error(error.response.data.message);
       }
       throw new Error('Failed to assign item to participant');
+    }
+  },
+
+  async deleteItemAssignment(billId: string, itemId: number, participantId: number): Promise<void> {
+    try {
+      await axios({
+        method: 'delete',
+        url: `${API_BASE_URL}/api/bills/${billId}/assign-items`,
+        data: {
+          item_id: itemId,
+          participant_id: participantId,
+        },
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to remove item assignment');
+    }
+  },
+
+  async deleteParticipant(billId: string, participantId: number): Promise<void> {
+    try {
+      await axios.delete(`${API_BASE_URL}/api/bills/${billId}/participants/${participantId}`);
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to delete participant');
     }
   },
 

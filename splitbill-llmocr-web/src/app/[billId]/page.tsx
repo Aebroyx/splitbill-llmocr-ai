@@ -71,31 +71,83 @@ export default function BillPage() {
     }
   });
 
+  // Load bill data and participants when component mounts
   useEffect(() => {
-    if (billId) {
-      loadBill();
-    }
-  }, [billId]);
-
-  const loadBill = async () => {
-    try {
-      const billData = await billService.getBillById(billId);
-      setBill(billData);
-      
-      // If bill is already completed, load items and participants
-      if (billData.status === 'completed') {
-        const billWithItemsData = await billService.getBillWithItems(billId);
-        setBillWithItems(billWithItemsData);
-        setParticipants(billWithItemsData.participants || []);
+    const loadData = async () => {
+      try {
+        // Load bill data
+        const billData = await billService.getBillById(billId);
+        setBill(billData);
+        
+        // Load participants first
+        let participantsData: any[] = [];
+        try {
+          participantsData = await billService.getParticipants(billId);
+          setParticipants(participantsData);
+        } catch (error) {
+          console.error('Error loading participants:', error);
+          // Set empty array if participants can't be loaded
+          setParticipants([]);
+        }
+        
+        // If bill is already completed, load items and update billWithItems
+        if (billData.status === 'completed') {
+          try {
+            const billWithItemsData = await billService.getBillWithItems(billId);
+            setBillWithItems(billWithItemsData);
+            
+            // Only update participants if we didn't get them from getParticipants
+            if (participantsData.length === 0 && billWithItemsData.participants) {
+              setParticipants(billWithItemsData.participants);
+            }
+          } catch (error) {
+            console.error('Error loading bill with items:', error);
+          }
+        }
+        
+        // Load item assignments (only if we have participants)
+        if (participantsData.length > 0) {
+          try {
+            const assignmentsData = await billService.getItemAssignments(billId);
+            console.log('Loaded assignments from backend:', assignmentsData);
+            console.log('Assignments data type:', typeof assignmentsData);
+            console.log('Assignments data length:', assignmentsData?.length);
+            
+            if (assignmentsData && Array.isArray(assignmentsData)) {
+              const mappedAssignments = assignmentsData.map(assignment => {
+                console.log('Processing assignment:', assignment);
+                return {
+                  itemId: assignment.item_id,
+                  participantId: assignment.participant_id
+                };
+              });
+              
+              console.log('Mapped assignments for frontend:', mappedAssignments);
+              setItemAssignments(mappedAssignments);
+            } else {
+              console.log('Assignments data is not an array or is null/undefined');
+              setItemAssignments([]);
+            }
+          } catch (error) {
+            console.error('Error loading item assignments:', error);
+            // Set empty array if assignments can't be loaded
+            setItemAssignments([]);
+          }
+        } else {
+          console.log('No participants found, setting empty item assignments');
+          setItemAssignments([]);
+        }
+      } catch (error) {
+        console.error('Error loading bill data:', error);
+        toast.error('Failed to load bill');
+        router.push('/');
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error loading bill:', error);
-      toast.error('Failed to load bill');
-      router.push('/');
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    loadData();
+  }, [billId]);
 
   const handleImageUpload = (file: File) => {
     if (file && file.type.startsWith('image/')) {
@@ -572,6 +624,8 @@ export default function BillPage() {
             billId={billId}
             items={billWithItems.items || []}
             participants={participants}
+            itemAssignments={itemAssignments}
+            bill={bill}
             onParticipantsChange={handleParticipantsChange}
             onItemAssignmentsChange={handleItemAssignmentsChange}
           />
