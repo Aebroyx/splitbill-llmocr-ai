@@ -6,11 +6,11 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --primary: #8A73F9;
+  --primary: #3B82F6;
   --secondary: #E2F973;
   --primary-light: #BFA7FF;
   --secondary-light: #F0FFB3;
-  --primary-dark: #5F4AD3;
+  --primary-dark: #2563EB;
   --secondary-dark: #B0D94D;
 }
 
@@ -68,26 +68,34 @@ body {
 /* Custom color utilities for primary colors */
 @layer utilities {
   .focus\:ring-primary:focus {
-    --tw-ring-color: #8A73F9;
+    --tw-ring-color: var(--primary);
   }
   
   .focus\:border-primary:focus {
-    border-color: #8A73F9;
+    border-color: var(--primary);
   }
   
   .text-primary {
-    color: #8A73F9;
+    color: var(--primary);
   }
   
   .bg-primary {
-    background-color: #8A73F9;
+    background-color: var(--primary);
   }
   
-  .hover\:bg-primary-dark:hover {
-    background-color: #5F4AD3;
+  .hover\:bg-primary:hover {
+    background-color: var(--primary-dark);
   }
   
   .bg-primary-dark {
-    background-color: #5F4AD3;
+    background-color: var(--primary-dark);
+  }
+
+  .border-primary {
+    border-color: var(--primary);
+  }
+
+  .border-b-primary {
+    border-bottom-color: var(--primary);
   }
 }

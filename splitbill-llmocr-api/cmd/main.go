@@ -88,11 +88,23 @@ func main() {
 		{
 			bills.POST("/", billHandler.CreateBill)
 			bills.GET("/:id", billHandler.GetBill)
+			bills.PUT("/:id", billHandler.UpdateBill)
+			bills.GET("/:id/status", billHandler.GetBillStatus)
 			bills.POST("/:id/image", billHandler.UploadBillImage)
 			bills.GET("/:id/summary", billHandler.GetBillSummary)
+			bills.GET("/:id/participants", billHandler.GetParticipants)
 			bills.POST("/:id/participants", billHandler.AddParticipant)
+			bills.DELETE("/:id/participants/:participantId", billHandler.DeleteParticipant)
+			bills.GET("/:id/item-assignments", billHandler.GetItemAssignments)
 			bills.POST("/:id/assign-items", billHandler.AssignItemToParticipant)
+			bills.DELETE("/:id/assign-items", billHandler.DeleteItemAssignment)
 			bills.POST("/:id/process-data", billHandler.ProcessExtractedData)
+		}
+
+		// Items routes
+		items := api.Group("/items")
+		{
+			items.PUT("/:id", billHandler.UpdateItem)
 		}
 
 		// Protected routes (with auth middleware)
