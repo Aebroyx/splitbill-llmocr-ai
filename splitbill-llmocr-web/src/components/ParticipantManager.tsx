@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PlusIcon, XMarkIcon, UserIcon, CheckIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, XMarkIcon, UserIcon, CheckIcon, PencilIcon, TrashIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { BillItem, BillParticipant, billService } from '../lib/services/billService';
 import toast from 'react-hot-toast';
 
@@ -251,6 +251,46 @@ export default function ParticipantManager({
 
   return (
     <div className="space-y-6">
+      {/* Share Link Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Share this bill</h3>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                <span className="text-sm text-gray-600 font-mono break-all">
+                  {typeof window !== 'undefined' ? window.location.href : ''}
+                </span>
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(window.location.href);
+                    toast.success('Link copied to clipboard!');
+                  } catch (err) {
+                    // Fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = window.location.href;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    toast.success('Link copied to clipboard!');
+                  }
+                }}
+                className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+              >
+                <ClipboardDocumentIcon className="w-4 h-4" />
+                Copy Link
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Share this link with others so they can view and participate in splitting the bill
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Participants Section */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
@@ -328,7 +368,7 @@ export default function ParticipantManager({
                 <span className="text-sm text-gray-500 font-bold text-l">
                   Total:
                 </span>
-                <span className="text-sm text-gray-900 font-bold text-xl">
+                <span className="text-gray-900 font-bold text-xl">
                   ${getParticipantTotalWithTaxTip(participant.id).toFixed(2)}
                 </span>
                 <button

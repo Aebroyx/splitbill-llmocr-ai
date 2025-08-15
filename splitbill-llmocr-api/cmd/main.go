@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/Aebroyx/splitbill-llmocr-api/internal/config"
 	"github.com/Aebroyx/splitbill-llmocr-api/internal/database"
@@ -12,11 +13,22 @@ import (
 )
 
 func main() {
+	// Set Gin mode based on environment
+	if os.Getenv("APP_ENV") == "production" {
+		gin.SetMode(gin.ReleaseMode)
+		log.Println("Starting application in PRODUCTION mode")
+	} else {
+		log.Println("Starting application in DEVELOPMENT mode")
+	}
+
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
+
+	log.Printf("Environment: %s", cfg.Environment)
+	log.Printf("Server will start on: %s", cfg.GetServerAddr())
 
 	// Validate configuration
 	if err := cfg.Validate(); err != nil {
@@ -24,16 +36,19 @@ func main() {
 	}
 
 	// Initialize database
+	log.Println("Initializing database connection...")
 	db, err := database.NewConnection(cfg)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
 	// Initialize services
+	log.Println("Initializing services...")
 	userService := services.NewUserService(db.DB, cfg)
 	billService := services.NewBillService(db.DB)
 
 	// Initialize handlers
+	log.Println("Initializing handlers...")
 	authHandler := handlers.NewAuthHandler(userService)
 	billHandler := handlers.NewBillHandler(billService)
 
@@ -118,6 +133,7 @@ func main() {
 
 	// Start server
 	log.Printf("Server starting on %s", cfg.GetServerAddr())
+	log.Println("Application is ready to handle requests!")
 	if err := router.Run(cfg.GetServerAddr()); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
