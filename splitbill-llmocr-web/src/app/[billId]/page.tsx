@@ -58,6 +58,11 @@ export default function BillPage() {
           const updatedBill = await billService.getBillWithItems(billId);
           setBillWithItems(updatedBill);
           setParticipants(updatedBill.participants || []);
+          
+          // Also update the main bill state to get the latest tax and tip amounts
+          const updatedBillData = await billService.getBillById(billId);
+          setBill(updatedBillData);
+          
           toast.success('Bill processing completed! Items have been extracted.');
         } catch (error) {
           console.error('Error loading bill with items:', error);
