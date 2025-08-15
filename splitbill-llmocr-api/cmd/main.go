@@ -69,17 +69,34 @@ func main() {
 		log.Printf("Incoming request: %s %s", c.Request.Method, c.Request.URL.Path)
 
 		// Get allowed origins from config
-		allowedOrigin := cfg.CORSAllowedOrigins
-		if allowedOrigin == "" {
+		allowedOrigins := cfg.CORSAllowedOrigins
+		var allowedOrigin string
+
+		// Handle multiple origins
+		if len(allowedOrigins) == 0 {
 			if cfg.Environment == "production" {
 				allowedOrigin = "*" // Allow all origins in production if not specified
 			} else {
 				allowedOrigin = "http://localhost:3001" // fallback for development
 			}
+		} else if len(allowedOrigins) == 1 {
+			allowedOrigin = allowedOrigins[0]
+		} else {
+			// Multiple origins - check if request origin is in the allowed list
+			requestOrigin := c.Request.Header.Get("Origin")
+			for _, origin := range allowedOrigins {
+				if origin == requestOrigin {
+					allowedOrigin = requestOrigin
+					break
+				}
+			}
+			// If no match found, don't set Access-Control-Allow-Origin header
 		}
 
-		// Set CORS headers
-		c.Writer.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
+		// Set CORS headers (only if we have a valid origin)
+		if allowedOrigin != "" {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
+		}
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")

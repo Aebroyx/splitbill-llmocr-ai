@@ -99,7 +99,8 @@ JWT_SECRET=your_jwt_secret
 JWT_EXPIRY=24h
 
 # CORS
-CORS_ALLOWED_ORIGINS=http://localhost:3000
+# Multiple origins can be specified by separating them with commas
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,https://yourdomain.com
 
 # N8N Integration
 N8N_WEBHOOK_URL=http://localhost:5678/webhook/bill-processing
