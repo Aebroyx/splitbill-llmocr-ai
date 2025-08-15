@@ -138,7 +138,7 @@ func Load() (*Config, error) {
 		JWTExpiry: jwtExpiry,
 
 		// CORS config
-		CORSAllowedOrigins: parseCommaSeparated(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000")),
+		CORSAllowedOrigins: parseCommaSeparated(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3001")),
 
 		// Logging
 		LogLevel: getEnv("LOG_LEVEL", "debug"),
