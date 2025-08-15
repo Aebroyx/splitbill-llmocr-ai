@@ -9,6 +9,7 @@ import { useRef } from 'react';
 import { useBillStatus } from '../../lib/hooks/useBillStatus';
 import BillStatusIndicator from '../../components/BillStatusIndicator';
 import ParticipantManager from '../../components/ParticipantManager';
+import Image from 'next/image';
 
 
 export default function BillPage() {
@@ -130,7 +131,7 @@ export default function BillPage() {
     };
 
     loadData();
-  }, [billId]);
+  }, [billId, router]);
 
   const handleImageUpload = (file: File) => {
     if (file && file.type.startsWith('image/')) {
@@ -232,7 +233,7 @@ export default function BillPage() {
     setImagePreview(null);
   };
 
-  const startEditingItem = (item: any) => {
+  const startEditingItem = (item: { id: number; name: string; price: number; quantity: number }) => {
     setEditingItem(item.id);
     setEditItemData({
       name: item.name,
@@ -492,7 +493,7 @@ export default function BillPage() {
                         try {
                           await navigator.clipboard.writeText(window.location.href);
                           toast.success('Link copied to clipboard!');
-                        } catch (err) {
+                        } catch {
                           // Fallback for older browsers
                           const textArea = document.createElement('textarea');
                           textArea.value = window.location.href;
@@ -685,9 +686,11 @@ export default function BillPage() {
               {/* Image Preview */}
               {imagePreview && (
                 <div className="relative">
-                  <img 
+                  <Image 
                     src={imagePreview} 
                     alt="Bill preview" 
+                    width={400}
+                    height={192}
                     className="w-full h-48 object-cover rounded-lg border border-gray-300"
                   />
                   <button
