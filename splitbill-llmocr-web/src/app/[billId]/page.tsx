@@ -319,7 +319,7 @@ export default function BillPage() {
     }
 
     if (editTaxTipData.tip_amount < 0) {
-      toast.error('Tip amount cannot be negative');
+      toast.error('Tip / Service amount cannot be negative');
       return;
     }
 
@@ -341,7 +341,7 @@ export default function BillPage() {
 
       setEditingTaxTip(false);
       setEditTaxTipData({ tax_amount: 0, tip_amount: 0 });
-      toast.success('Tax and tip updated successfully!');
+      toast.success('Tax and tip / service updated successfully!');
     } catch (error) {
       console.error('Error updating tax and tip:', error);
       toast.error('Failed to update tax and tip');
@@ -387,7 +387,7 @@ export default function BillPage() {
                 <button
                   onClick={startEditingTaxTip}
                   className="text-primary hover:text-primary-dark hover:bg-indigo-50 p-1.5 rounded-lg transition-colors flex items-center justify-center"
-                  title="Edit tax and tip amounts"
+                  title="Edit tax and tip / service amounts"
                 >
                   <PencilIcon className="w-4 h-4" />
                 </button>
@@ -430,7 +430,7 @@ export default function BillPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Tip Amount
+                        Tip / Service Amount
                       </label>
                       <input
                         type="number"
@@ -453,7 +453,7 @@ export default function BillPage() {
                     </span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Tip Amount:</span>
+                    <span className="text-gray-500">Tip/Service Amount:</span>
                     <span className="ml-2 font-medium text-gray-900">
                       ${bill?.tip_amount ? bill.tip_amount.toFixed(2) : '0.00'}
                     </span>

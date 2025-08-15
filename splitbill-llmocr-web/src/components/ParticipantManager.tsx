@@ -49,24 +49,7 @@ export default function ParticipantManager({
     }
   }, [initialItemAssignments]);
 
-  // Debug logging for tax and tip calculations
-  useEffect(() => {
-    if (bill && participants.length > 0) {
-      // console.log('Tax and Tip Distribution Debug:', {
-      //   taxAmount: bill.tax_amount,
-      //   tipAmount: bill.tip_amount,
-      //   totalTaxTip: bill.tax_amount + bill.tip_amount,
-      //   participantCount: participants.length,
-      //   taxTipPerPerson: getTaxAndTipPerParticipant(),
-      //   participants: participants.map(p => ({
-      //     name: p.name,
-      //     itemTotal: getParticipantTotal(p.id),
-      //     taxTipShare: getTaxAndTipPerParticipant(),
-      //     finalTotal: getParticipantTotalWithTaxTip(p.id)
-      //   }))
-      // });
-    }
-  }, [bill, participants, itemAssignments]);
+
 
   const handleAddParticipant = async () => {
     if (!newParticipantName.trim()) {
@@ -214,21 +197,29 @@ export default function ParticipantManager({
     return (item.price * item.quantity) / participantsSharingThisItem;
   };
 
-  const getTaxAndTipPerParticipant = () => {
-    if (participants.length === 0) return 0;
+  const getParticipantTaxTipShare = (participantId: number) => {
+    if (!bill) return 0;
     
-    // Get tax and tip from the parent component (bill data)
-    const taxAmount = bill?.tax_amount || 0;
-    const tipAmount = bill?.tip_amount || 0;
-    
-    // Divide tax and tip equally among all participants
+    const taxAmount = bill.tax_amount || 0;
+    const tipAmount = bill.tip_amount || 0;
     const totalTaxTip = taxAmount + tipAmount;
-    return totalTaxTip / participants.length;
+    
+    if (totalTaxTip === 0) return 0;
+    
+    // Calculate participant's share of items
+    const participantItemTotal = getParticipantTotal(participantId);
+    const totalAssignedItems = getTotalAssigned();
+    
+    if (totalAssignedItems === 0) return 0;
+    
+    // Calculate tax and tip proportion based on items purchased
+    const participantRatio = participantItemTotal / totalAssignedItems;
+    return totalTaxTip * participantRatio;
   };
 
   const getParticipantTotalWithTaxTip = (participantId: number) => {
     const itemTotal = getParticipantTotal(participantId);
-    const taxTipShare = getTaxAndTipPerParticipant();
+    const taxTipShare = getParticipantTaxTipShare(participantId);
     return itemTotal + taxTipShare;
   };
 
@@ -334,8 +325,11 @@ export default function ParticipantManager({
               </div>
               
               <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-600">
-                  Total: ${getParticipantTotalWithTaxTip(participant.id).toFixed(2)}
+                <span className="text-sm text-gray-500 font-bold text-l">
+                  Total:
+                </span>
+                <span className="text-sm text-gray-900 font-bold text-xl">
+                  ${getParticipantTotalWithTaxTip(participant.id).toFixed(2)}
                 </span>
                 <button
                   onClick={() => handleEditParticipant(participant.id, participant.name)}
@@ -436,21 +430,48 @@ export default function ParticipantManager({
                     )}
                     {bill.tip_amount > 0 && (
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Tip Amount:</span>
+                        <span className="text-gray-600">Tip / Service Amount:</span>
                         <span className="font-medium text-gray-900">${bill.tip_amount.toFixed(2)}</span>
                       </div>
                     )}
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Total Tax + Tip:</span>
+                      <span className="text-gray-600">Total Tax + Tip/Service:</span>
                       <span className="font-medium text-gray-900">${((bill.tax_amount || 0) + (bill.tip_amount || 0)).toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Per Participant:</span>
-                      <span className="font-medium text-gray-900">${getTaxAndTipPerParticipant().toFixed(2)}</span>
-                    </div>
                     <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
-                      Tax and tip are divided equally among all {participants.length} participant{participants.length !== 1 ? 's' : ''}
+                      Tax and tip/service are distributed proportionally based on each participant's share of items purchased
                     </div>
+                  </div>
+                </div>
+                
+                {/* Individual Tax & Tip Breakdown */}
+                <div className="pt-3 border-t border-gray-200">
+                  <h4 className="font-medium text-gray-900 mb-2">Individual Tax & Tip/Service Breakdown</h4>
+                  <div className="space-y-2 text-sm">
+                    {participants.map((participant) => {
+                      const itemTotal = getParticipantTotal(participant.id);
+                      const taxTipShare = getParticipantTaxTipShare(participant.id);
+                      const totalAssignedItems = getTotalAssigned();
+                      const participantRatio = totalAssignedItems > 0 ? (itemTotal / totalAssignedItems) * 100 : 0;
+                      
+                      return (
+                        <div key={participant.id} className="flex justify-between items-center">
+                          <div className="text-left">
+                            <div className="font-medium text-gray-900">{participant.name}</div>
+                            <div className="text-xs text-gray-500">
+                              {participantRatio.toFixed(1)}% of items
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-gray-900">${taxTipShare.toFixed(2)}</div>
+                            <div className="text-xs text-gray-500">
+                              Tax: ${((bill?.tax_amount || 0) * (itemTotal / totalAssignedItems)).toFixed(2)} + 
+                              Tip: ${((bill?.tip_amount || 0) * (itemTotal / totalAssignedItems)).toFixed(2)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </>
@@ -513,7 +534,7 @@ export default function ParticipantManager({
                       <div className="font-medium text-gray-900">${getParticipantTotalWithTaxTip(participant.id).toFixed(2)}</div>
                       <div className="text-xs text-gray-500">
                         Items: ${getParticipantTotal(participant.id).toFixed(2)} + 
-                        Tax/Tip: ${getTaxAndTipPerParticipant().toFixed(2)}
+                        Tax/Tip: ${getParticipantTaxTipShare(participant.id).toFixed(2)}
                       </div>
                     </div>
                   </div>
