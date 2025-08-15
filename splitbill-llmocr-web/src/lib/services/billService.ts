@@ -76,9 +76,9 @@ export const billService = {
         },
       });
       return response.data as Bill;
-    } catch (error: any) {
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'data' in error.response && error.response.data && typeof error.response.data === 'object' && 'message' in error.response.data) {
+        throw new Error((error.response.data as { message: string }).message);
       }
       throw new Error('Failed to create bill');
     }
@@ -88,9 +88,9 @@ export const billService = {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/bills`);
       return response.data as Bill[];
-    } catch (error: any) {
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'data' in error.response && error.response.data && typeof error.response.data === 'object' && 'message' in error.response.data) {
+        throw new Error((error.response.data as { message: string }).message);
       }
       throw new Error('Failed to fetch bills');
     }
@@ -100,9 +100,9 @@ export const billService = {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/bills/${id}`);
       return response.data as Bill;
-    } catch (error: any) {
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'data' in error.response && error.response.data && typeof error.response.data === 'object' && 'message' in error.response.data) {
+        throw new Error((error.response.data as { message: string }).message);
       }
       throw new Error('Failed to fetch bill');
     }
@@ -119,9 +119,9 @@ export const billService = {
         },
       });
       return response.data as UploadImageResponse;
-    } catch (error: any) {
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'data' in error.response && error.response.data && typeof error.response.data === 'object' && 'message' in error.response.data) {
+        throw new Error((error.response.data as { message: string }).message);
       }
       throw new Error('Failed to upload image');
     }
@@ -131,9 +131,9 @@ export const billService = {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/bills/${billId}/status`);
       return response.data as BillStatus;
-    } catch (error: any) {
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'data' in error.response && error.response.data && typeof error.response.data === 'object' && 'message' in error.response.data) {
+        throw new Error((error.response.data as { message: string }).message);
       }
       throw new Error('Failed to fetch bill status');
     }
@@ -143,9 +143,9 @@ export const billService = {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/bills/${billId}`);
       return response.data as BillWithItems;
-    } catch (error: any) {
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'data' in error.response && error.response.data && typeof error.response.data === 'object' && 'message' in error.response.data) {
+        throw new Error((error.response.data as { message: string }).message);
       }
       throw new Error('Failed to fetch bill with items');
     }
@@ -155,9 +155,9 @@ export const billService = {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/bills/${billId}/participants`);
       return response.data as BillParticipant[];
-    } catch (error: any) {
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'data' in error.response && error.response.data && typeof error.response.data === 'object' && 'message' in error.response.data) {
+        throw new Error((error.response.data as { message: string }).message);
       }
       throw new Error('Failed to fetch participants');
     }
@@ -168,7 +168,7 @@ export const billService = {
       const response = await axios.get(`${API_BASE_URL}/api/bills/${billId}/item-assignments`);
       
       if (response.data && Array.isArray(response.data)) {
-        return response.data.map((assignment: any) => ({
+        return response.data.map((assignment: { item_id: number; participant_id: number }) => ({
           item_id: assignment.item_id,
           participant_id: assignment.participant_id
         }));
@@ -189,9 +189,9 @@ export const billService = {
         },
       });
       return response.data as BillParticipant;
-    } catch (error: any) {
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'data' in error.response && error.response.data && typeof error.response.data === 'object' && 'message' in error.response.data) {
+        throw new Error((error.response.data as { message: string }).message);
       }
       throw new Error('Failed to add participant');
     }
@@ -208,9 +208,9 @@ export const billService = {
         },
       });
       return response.data as ItemAssignment;
-    } catch (error: any) {
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'data' in error.response && error.response.data && typeof error.response.data === 'object' && 'message' in error.response.data) {
+        throw new Error((error.response.data as { message: string }).message);
       }
       throw new Error('Failed to assign item to participant');
     }
@@ -229,9 +229,9 @@ export const billService = {
           'Content-Type': 'application/json',
         },
       });
-    } catch (error: any) {
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'data' in error.response && error.response.data && typeof error.response.data === 'object' && 'message' in error.response.data) {
+        throw new Error((error.response.data as { message: string }).message);
       }
       throw new Error('Failed to remove item assignment');
     }
@@ -240,9 +240,9 @@ export const billService = {
   async deleteParticipant(billId: string, participantId: number): Promise<void> {
     try {
       await axios.delete(`${API_BASE_URL}/api/bills/${billId}/participants/${participantId}`);
-    } catch (error: any) {
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'data' in error.response && error.response.data && typeof error.response.data === 'object' && 'message' in error.response.data) {
+        throw new Error((error.response.data as { message: string }).message);
       }
       throw new Error('Failed to delete participant');
     }
@@ -256,9 +256,9 @@ export const billService = {
         },
       });
       return response.data as BillItem;
-    } catch (error: any) {
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'data' in error.response && error.response.data && typeof error.response.data === 'object' && 'message' in error.response.data) {
+        throw new Error((error.response.data as { message: string }).message);
       }
       throw new Error('Failed to update item');
     }
@@ -272,21 +272,21 @@ export const billService = {
         },
       });
       return response.data as Bill;
-    } catch (error: any) {
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'data' in error.response && error.response.data && typeof error.response.data === 'object' && 'message' in error.response.data) {
+        throw new Error((error.response.data as { message: string }).message);
       }
       throw new Error('Failed to update bill');
     }
   },
 
-  async getBillSummary(billId: string): Promise<any> {
+  async getBillSummary(billId: string): Promise<unknown> {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/bills/${billId}/summary`);
       return response.data;
-    } catch (error: any) {
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'data' in error.response && error.response.data && typeof error.response.data === 'object' && 'message' in error.response.data) {
+        throw new Error((error.response.data as { message: string }).message);
       }
       throw new Error('Failed to fetch bill summary');
     }

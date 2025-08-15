@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { billService, BillStatus } from '../services/billService';
 
 interface UseBillStatusOptions {
@@ -24,7 +24,7 @@ export function useBillStatus({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const startPolling = () => {
+  const startPolling = useCallback(() => {
     if (isPolling) return;
     
     setIsPolling(true);
@@ -77,9 +77,9 @@ export function useBillStatus({
     
     // Set up interval for subsequent polls
     intervalRef.current = setInterval(poll, pollInterval);
-  };
+  }, [billId, pollInterval, isPolling, onStatusChange, onComplete, onError]);
 
-  const stopPolling = () => {
+  const stopPolling = useCallback(() => {
     setIsPolling(false);
     
     // Clear interval
@@ -93,7 +93,7 @@ export function useBillStatus({
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-  };
+  }, []);
 
   const reset = () => {
     stopPolling();
@@ -107,17 +107,24 @@ export function useBillStatus({
     return () => {
       stopPolling();
     };
-  }, []);
+  }, [stopPolling]);
 
-  // Auto-start polling when billId changes
+  // Fetch initial status once when component mounts
   useEffect(() => {
-    if (billId) {
-      startPolling();
-    }
-    
-    return () => {
-      stopPolling();
+    const fetchInitialStatus = async () => {
+      try {
+        const billStatus = await billService.getBillStatus(billId);
+        setStatus(billStatus.status);
+        setLastUpdated(new Date());
+      } catch (error) {
+        console.error('Error fetching initial status:', error);
+        setError(error instanceof Error ? error : new Error('Failed to fetch initial status'));
+      }
     };
+
+    if (billId) {
+      fetchInitialStatus();
+    }
   }, [billId]);
 
   return {
