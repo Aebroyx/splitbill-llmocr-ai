@@ -13,6 +13,11 @@ import (
 )
 
 func main() {
+	// Set environment variable if not already set
+	if os.Getenv("APP_ENV") == "" {
+		os.Setenv("APP_ENV", "development")
+	}
+
 	// Set Gin mode based on environment
 	if os.Getenv("APP_ENV") == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -66,7 +71,11 @@ func main() {
 		// Get allowed origins from config
 		allowedOrigin := cfg.CORSAllowedOrigins
 		if allowedOrigin == "" {
-			allowedOrigin = "http://localhost:3001" // fallback
+			if cfg.Environment == "production" {
+				allowedOrigin = "*" // Allow all origins in production if not specified
+			} else {
+				allowedOrigin = "http://localhost:3001" // fallback for development
+			}
 		}
 
 		// Set CORS headers
@@ -87,7 +96,11 @@ func main() {
 	})
 
 	// Serve static files (for uploaded images)
-	router.Static("/uploads", "./uploads")
+	uploadsPath := os.Getenv("UPLOADS_PATH")
+	if uploadsPath == "" {
+		uploadsPath = "./uploads"
+	}
+	router.Static("/uploads", uploadsPath)
 
 	// All API routes
 	api := router.Group("/api")
