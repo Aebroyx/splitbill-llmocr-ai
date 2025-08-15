@@ -30,7 +30,7 @@ type Config struct {
 	JWTExpiry time.Duration
 
 	// CORS config
-	CORSAllowedOrigins string
+	CORSAllowedOrigins []string
 
 	// Logging
 	LogLevel string
@@ -138,7 +138,7 @@ func Load() (*Config, error) {
 		JWTExpiry: jwtExpiry,
 
 		// CORS config
-		CORSAllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000"),
+		CORSAllowedOrigins: parseCommaSeparated(getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000")),
 
 		// Logging
 		LogLevel: getEnv("LOG_LEVEL", "debug"),
@@ -151,6 +151,26 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+// parseCommaSeparated parses a comma-separated string into a slice of strings
+func parseCommaSeparated(input string) []string {
+	if input == "" {
+		return []string{}
+	}
+	
+	// Split by comma and trim whitespace from each item
+	parts := strings.Split(input, ",")
+	result := make([]string, 0, len(parts))
+	
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	
+	return result
 }
 
 // Validate checks if the configuration is valid
