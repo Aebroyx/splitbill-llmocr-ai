@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PlusIcon, UserIcon, CheckIcon, PencilIcon, TrashIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, XMarkIcon, UserIcon, CheckIcon, PencilIcon, TrashIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { BillItem, BillParticipant, billService } from '../lib/services/billService';
 import toast from 'react-hot-toast';
 
@@ -13,6 +13,11 @@ interface ParticipantManagerProps {
   bill: { tax_amount: number; tip_amount: number } | null;
   onParticipantsChange: (participants: BillParticipant[]) => void;
   onItemAssignmentsChange: (assignments: {itemId: number, participantId: number}[]) => void;
+}
+
+interface ItemAssignment {
+  itemId: number;
+  participantId: number;
 }
 
 export default function ParticipantManager({
@@ -177,7 +182,20 @@ export default function ParticipantManager({
     return items.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
-
+  // Calculate how much each participant should pay for each item they're sharing
+  const getItemShareForParticipant = (itemId: number, participantId: number) => {
+    const participantsSharingThisItem = itemAssignments.filter(
+      assignment => assignment.itemId === itemId
+    ).length;
+    
+    if (participantsSharingThisItem === 0) return 0;
+    
+    const item = items.find(i => i.id === itemId);
+    if (!item) return 0;
+    
+    // Split the item cost equally among all participants sharing it
+    return (item.price * item.quantity) / participantsSharingThisItem;
+  };
 
   const getParticipantTaxTipShare = (participantId: number) => {
     if (!bill) return 0;
@@ -219,7 +237,17 @@ export default function ParticipantManager({
     return itemsTotal - assignedTotal;
   };
 
-
+  // Calculate tax and tip for unassigned items (if any)
+  const getUnassignedTaxTip = () => {
+    const unassignedItems = getUnassignedItemsTotal();
+    if (unassignedItems > 0) {
+      const totalTaxTip = (bill?.tax_amount || 0) + (bill?.tip_amount || 0);
+      const totalBill = getTotalBillWithTaxTip();
+      // Proportion tax/tip based on unassigned items
+      return (unassignedItems / totalBill) * totalTaxTip;
+    }
+    return 0;
+  };
 
   return (
     <div className="space-y-6">
@@ -239,7 +267,7 @@ export default function ParticipantManager({
                   try {
                     await navigator.clipboard.writeText(window.location.href);
                     toast.success('Link copied to clipboard!');
-                  } catch {
+                  } catch (err) {
                     // Fallback for older browsers
                     const textArea = document.createElement('textarea');
                     textArea.value = window.location.href;
@@ -451,7 +479,7 @@ export default function ParticipantManager({
                       <span className="font-medium text-gray-900">${((bill.tax_amount || 0) + (bill.tip_amount || 0)).toFixed(2)}</span>
                     </div>
                     <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
-                      Tax and tip/service are distributed proportionally based on each participant&apos;s share of items purchased
+                      Tax and tip/service are distributed proportionally based on each participant's share of items purchased
                     </div>
                   </div>
                 </div>

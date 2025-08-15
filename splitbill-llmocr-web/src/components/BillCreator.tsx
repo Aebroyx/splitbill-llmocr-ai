@@ -6,10 +6,8 @@ import { PlusIcon } from '@heroicons/react/24/outline';
 import { billService, CreateBillPayload } from '../lib/services/billService';
 import toast from 'react-hot-toast';
 
-import { Bill } from '../lib/services/billService';
-
 interface BillCreatorProps {
-  onCreateBill?: (bill: Bill) => void;
+  onCreateBill?: (bill: any) => void;
 }
 
 export default function BillCreator({ onCreateBill }: BillCreatorProps) {
