@@ -1,4 +1,4 @@
-import { CheckCircleIcon, ExclamationTriangleIcon, ClockIcon, XCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, ClockIcon, XCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
 interface BillStatusIndicatorProps {
   status: string;
