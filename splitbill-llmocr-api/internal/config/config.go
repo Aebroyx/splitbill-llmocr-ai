@@ -38,9 +38,15 @@ type Config struct {
 
 // Load loads the configuration from environment variables
 func Load() (*Config, error) {
-	// Load .env file
-	if err := godotenv.Load(); err != nil {
-		return nil, fmt.Errorf("error loading .env file: %v", err)
+	// Only load .env file in development mode
+	appEnv := os.Getenv("APP_ENV")
+	fmt.Printf("Loading configuration for environment: %s\n", appEnv)
+
+	if appEnv != "production" {
+		if err := godotenv.Load(); err != nil {
+			// Log the error but don't fail - .env file is optional in development
+			fmt.Printf("Warning: Could not load .env file: %v\n", err)
+		}
 	}
 
 	// Parse JWT expiry duration
@@ -50,10 +56,15 @@ func Load() (*Config, error) {
 	}
 
 	environment := getEnv("APP_ENV", "development")
+	fmt.Printf("Environment detected: %s\n", environment)
 
 	// For production, prioritize DATABASE_URL
 	var dbHost, dbPort, dbUser, dbPassword, dbName, dbSSLMode string
 	databaseURL := getEnv("DATABASE_URL", "")
+
+	if environment == "production" {
+		fmt.Printf("Production mode: DATABASE_URL present: %v\n", databaseURL != "")
+	}
 
 	if environment == "production" && databaseURL != "" {
 		// Parse DATABASE_URL for production
@@ -111,7 +122,7 @@ func Load() (*Config, error) {
 		// Server config
 		Environment: environment,
 		ServerPort:  getEnv("SERVER_PORT", "8080"),
-		ServerHost:  getEnv("SERVER_HOST", "localhost"),
+		ServerHost:  getEnv("SERVER_HOST", "0.0.0.0"),
 
 		// Database config
 		DBHost:      dbHost,
