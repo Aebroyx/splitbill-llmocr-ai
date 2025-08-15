@@ -1,16 +1,12 @@
 'use client';
 
 // src/app/page.tsx
-import { useState } from 'react';
 import BillCreator from '../components/BillCreator';
 import { Toaster } from 'react-hot-toast';
-import { Bill } from '../lib/services/billService';
 
 export default function Home() {
-  const [bills, setBills] = useState<Bill[]>([]);
-
-  const handleCreateBill = (newBill: Bill) => {
-    setBills(prevBills => [newBill, ...prevBills]);
+  const handleCreateBill = () => {
+    // Bill creation handled by BillCreator component
   };
 
   return (

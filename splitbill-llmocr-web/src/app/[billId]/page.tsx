@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { billService, Bill, BillWithItems, BillParticipant } from '../../lib/services/billService';
+import { billService, Bill, BillWithItems, BillParticipant, BillItem } from '../../lib/services/billService';
 import { CameraIcon, PhotoIcon, XMarkIcon, ArrowLeftIcon, ExclamationTriangleIcon, UserGroupIcon, DocumentTextIcon, XCircleIcon, PencilIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { useRef } from 'react';
 import { useBillStatus } from '../../lib/hooks/useBillStatus';
 import BillStatusIndicator from '../../components/BillStatusIndicator';
 import ParticipantManager from '../../components/ParticipantManager';
+import Image from 'next/image';
 
 
 export default function BillPage() {
@@ -40,9 +41,10 @@ export default function BillPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const hasCheckedInitialStatus = useRef(false);
 
   // Use the status polling hook
-  const { status, isPolling, error: statusError, lastUpdated } = useBillStatus({
+  const { status, isPolling, error: statusError, lastUpdated, startPolling, stopPolling } = useBillStatus({
     billId,
     pollInterval: 2000,
     onStatusChange: (newStatus) => {
@@ -130,7 +132,24 @@ export default function BillPage() {
     };
 
     loadData();
-  }, [billId]);
+  }, [billId, router]);
+
+  // Check initial status once and start polling if needed
+  useEffect(() => {
+    if (status && !hasCheckedInitialStatus.current) {
+      hasCheckedInitialStatus.current = true;
+      if (status === 'pending' || status === 'processing') {
+        startPolling();
+      }
+    }
+  }, [status, startPolling]);
+
+  // Stop polling when status is completed or failed
+  useEffect(() => {
+    if (status === 'completed' || status === 'failed') {
+      stopPolling();
+    }
+  }, [status, stopPolling]);
 
   const handleImageUpload = (file: File) => {
     if (file && file.type.startsWith('image/')) {
@@ -207,7 +226,8 @@ export default function BillPage() {
       setSelectedImage(null);
       setImagePreview(null);
       
-      // The status polling will automatically detect the status change
+      // Start polling for status updates after image upload
+      startPolling();
     } catch (error) {
       console.error('Error uploading image:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to upload image');
@@ -232,7 +252,7 @@ export default function BillPage() {
     setImagePreview(null);
   };
 
-  const startEditingItem = (item: any) => {
+  const startEditingItem = (item: BillItem) => {
     setEditingItem(item.id);
     setEditItemData({
       name: item.name,
@@ -492,7 +512,7 @@ export default function BillPage() {
                         try {
                           await navigator.clipboard.writeText(window.location.href);
                           toast.success('Link copied to clipboard!');
-                        } catch (err) {
+                        } catch {
                           // Fallback for older browsers
                           const textArea = document.createElement('textarea');
                           textArea.value = window.location.href;
@@ -685,9 +705,11 @@ export default function BillPage() {
               {/* Image Preview */}
               {imagePreview && (
                 <div className="relative">
-                  <img 
+                  <Image 
                     src={imagePreview} 
                     alt="Bill preview" 
+                    width={400}
+                    height={192}
                     className="w-full h-48 object-cover rounded-lg border border-gray-300"
                   />
                   <button

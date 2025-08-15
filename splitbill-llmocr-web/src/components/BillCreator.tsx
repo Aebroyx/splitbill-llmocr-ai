@@ -7,7 +7,7 @@ import { billService, CreateBillPayload } from '../lib/services/billService';
 import toast from 'react-hot-toast';
 
 interface BillCreatorProps {
-  onCreateBill?: (bill: any) => void;
+  onCreateBill?: (bill: import('../lib/services/billService').Bill) => void;
 }
 
 export default function BillCreator({ onCreateBill }: BillCreatorProps) {
