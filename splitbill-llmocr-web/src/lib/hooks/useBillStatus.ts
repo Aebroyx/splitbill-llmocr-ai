@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { billService, BillStatus } from '../services/billService';
 
 interface UseBillStatusOptions {
@@ -24,7 +24,7 @@ export function useBillStatus({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const startPolling = useCallback(() => {
+  const startPolling = () => {
     if (isPolling) return;
     
     setIsPolling(true);
@@ -77,7 +77,7 @@ export function useBillStatus({
     
     // Set up interval for subsequent polls
     intervalRef.current = setInterval(poll, pollInterval);
-  }, [billId, pollInterval, isPolling, onStatusChange, onComplete, onError]);
+  };
 
   const stopPolling = () => {
     setIsPolling(false);
@@ -118,7 +118,7 @@ export function useBillStatus({
     return () => {
       stopPolling();
     };
-  }, [billId, startPolling]);
+  }, [billId]);
 
   return {
     status,
