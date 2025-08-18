@@ -2,7 +2,9 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/Aebroyx/splitbill-llmocr-api/internal/config"
 	"github.com/Aebroyx/splitbill-llmocr-api/internal/database"
@@ -11,6 +13,51 @@ import (
 	"github.com/Aebroyx/splitbill-llmocr-api/internal/services"
 	"github.com/gin-gonic/gin"
 )
+
+// startKeepAlive starts a background goroutine that pings the health endpoint
+// to keep the Render free tier instance alive
+func startKeepAlive(serverAddr string) {
+	// Only enable keep-alive in production
+	if os.Getenv("APP_ENV") != "production" {
+		log.Println("Keep-alive disabled in development mode")
+		return
+	}
+
+	// Ping every 10 minutes (10 * 60 = 600 seconds)
+	// This ensures the instance stays alive on Render's free tier
+	ticker := time.NewTicker(10 * time.Minute)
+	defer ticker.Stop()
+
+	// Start the keep-alive loop
+	go func() {
+		log.Println("Starting keep-alive mechanism - pinging every 10 minutes")
+
+		// Ping immediately on startup
+		pingHealthEndpoint(serverAddr)
+
+		for range ticker.C {
+			pingHealthEndpoint(serverAddr)
+		}
+	}()
+}
+
+// pingHealthEndpoint sends a GET request to the health endpoint
+func pingHealthEndpoint(serverAddr string) {
+	url := "http://" + serverAddr + "/health"
+
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Printf("Keep-alive ping failed: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		log.Printf("Keep-alive ping successful: %s", time.Now().Format("15:04:05"))
+	} else {
+		log.Printf("Keep-alive ping returned status: %d", resp.StatusCode)
+	}
+}
 
 func main() {
 	// Set environment variable if not already set
@@ -112,6 +159,15 @@ func main() {
 		c.Next()
 	})
 
+	// Health check endpoint for keep-alive and monitoring
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status":      "healthy",
+			"timestamp":   time.Now().UTC().Format(time.RFC3339),
+			"environment": os.Getenv("APP_ENV"),
+		})
+	})
+
 	// Serve static files (for uploaded images)
 	uploadsPath := os.Getenv("UPLOADS_PATH")
 	if uploadsPath == "" {
@@ -160,6 +216,9 @@ func main() {
 			protected.POST("/auth/logout", authHandler.Logout)
 		}
 	}
+
+	// Start the keep-alive mechanism
+	startKeepAlive(cfg.GetServerAddr())
 
 	// Start server
 	log.Printf("Server starting on %s", cfg.GetServerAddr())
