@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { billService, Bill, BillWithItems, BillParticipant, BillItem } from '../../lib/services/billService';
-import { CameraIcon, PhotoIcon, XMarkIcon, ArrowLeftIcon, ExclamationTriangleIcon, UserGroupIcon, DocumentTextIcon, XCircleIcon, PencilIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
+import { CameraIcon, PhotoIcon, XMarkIcon, ArrowLeftIcon, ExclamationTriangleIcon, UserGroupIcon, DocumentTextIcon, XCircleIcon, PencilIcon, ClipboardDocumentIcon, UserIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { useRef } from 'react';
 import { useBillStatus } from '../../lib/hooks/useBillStatus';
@@ -163,6 +163,61 @@ export default function BillPage() {
       stopPolling();
     }
   }, [status, stopPolling]);
+
+  // Participant calculation functions
+  const isItemAssignedToParticipant = (itemId: number, participantId: number) => {
+    return itemAssignments.some(a => a.itemId === itemId && a.participantId === participantId);
+  };
+
+  const getParticipantTotal = (participantId: number) => {
+    if (!billWithItems?.items) return 0;
+    
+    let itemTotal = 0;
+    billWithItems.items.forEach(item => {
+      if (isItemAssignedToParticipant(item.id, participantId)) {
+        const participantsSharingThisItem = itemAssignments.filter(
+          assignment => assignment.itemId === item.id
+        ).length;
+        
+        if (participantsSharingThisItem > 0) {
+          const itemCostPerPerson = (item.price * item.quantity) / participantsSharingThisItem;
+          itemTotal += itemCostPerPerson;
+        }
+      }
+    });
+    
+    return itemTotal;
+  };
+
+  const getTotalAssigned = () => {
+    return participants.reduce((total, participant) => {
+      return total + getParticipantTotal(participant.id);
+    }, 0);
+  };
+
+  const getParticipantTaxTipShare = (participantId: number) => {
+    if (!bill) return 0;
+    
+    const taxAmount = bill.tax_amount || 0;
+    const tipAmount = bill.tip_amount || 0;
+    const totalTaxTip = taxAmount + tipAmount;
+    
+    if (totalTaxTip === 0) return 0;
+    
+    const participantItemTotal = getParticipantTotal(participantId);
+    const totalAssignedItems = getTotalAssigned();
+    
+    if (totalAssignedItems === 0) return 0;
+    
+    const participantRatio = participantItemTotal / totalAssignedItems;
+    return totalTaxTip * participantRatio;
+  };
+
+  const getParticipantTotalWithTaxTip = (participantId: number) => {
+    const itemTotal = getParticipantTotal(participantId);
+    const taxTipShare = getParticipantTaxTipShare(participantId);
+    return itemTotal + taxTipShare;
+  };
 
   const handleImageUpload = (file: File) => {
     if (file && file.type.startsWith('image/')) {
@@ -497,6 +552,56 @@ export default function BillPage() {
               <div className="text-xs text-gray-400 mb-4">
                 Created: {bill && new Date(bill.created_at).toLocaleDateString()}
               </div>
+
+              {/* Participants Summary */}
+              {participants.length > 0 && (
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Participants</h3>
+                    <span className="text-sm text-gray-500">
+                      {participants.length} participant{participants.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {participants.map((participant) => (
+                      <div key={participant.id} className="p-3 bg-gray-50 rounded-lg">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                          {/* Name Section */}
+                          <div className="flex items-center gap-3 min-w-0">
+                            <UserIcon className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                            <span className="font-medium text-gray-900 truncate">{participant.name}</span>
+                          </div>
+                          
+                          {/* Total Amount */}
+                          <div className="flex items-center justify-between sm:justify-end gap-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-500 font-medium">Total:</span>
+                              <span className="text-gray-900 font-bold text-lg">
+                                {formatCurrency(getParticipantTotalWithTaxTip(participant.id))}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Quick Summary */}
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-600">Total Bill Amount:</span>
+                      <span className="font-semibold text-gray-900">
+                        {formatCurrency(
+                          (billWithItems?.items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0) +
+                          (bill?.tax_amount || 0) +
+                          (bill?.tip_amount || 0)
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Share Link Section */}
