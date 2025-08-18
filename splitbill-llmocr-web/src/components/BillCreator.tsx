@@ -102,7 +102,8 @@ export default function BillCreator({ onCreateBill }: BillCreatorProps) {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        {/* Disable tax and tip inputs */}
+        {/* <div className="grid grid-cols-2 gap-4">
           <div>
             <label htmlFor="taxAmount" className="block text-sm font-medium text-gray-700 mb-2">
               Tax Amount
@@ -134,7 +135,7 @@ export default function BillCreator({ onCreateBill }: BillCreatorProps) {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-primary focus:ring-primary transition-colors duration-200 text-base text-gray-900 placeholder-gray-500"
             />
           </div>
-        </div>
+        </div> */}
         
         <div className="flex gap-3 pt-2">
           <button
