@@ -11,6 +11,7 @@ import BillStatusIndicator from '../../components/BillStatusIndicator';
 import ParticipantManager from '../../components/ParticipantManager';
 import StepIndicator from '../../components/StepIndicator';
 import Image from 'next/image';
+import { formatCurrency } from '../../lib/utils/currency';
 
 
 export default function BillPage() {
@@ -477,17 +478,17 @@ export default function BillPage() {
                 </div>
               ) : (
                 // Display Mode for Tax and Tip
-                <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                  <div>
+                <div className="space-y-2 sm:grid sm:grid-cols-2 sm:gap-4 sm:space-y-0 text-sm mb-4">
+                  <div className="flex justify-between sm:block">
                     <span className="text-gray-500">Tax Amount:</span>
                     <span className="ml-2 font-medium text-gray-900">
-                      ${bill?.tax_amount ? bill.tax_amount.toFixed(2) : '0.00'}
+                      {formatCurrency(bill?.tax_amount || 0)}
                     </span>
                   </div>
-                  <div>
+                  <div className="flex justify-between sm:block">
                     <span className="text-gray-500">Tip/Service Amount:</span>
                     <span className="ml-2 font-medium text-gray-900">
-                      ${bill?.tip_amount ? bill.tip_amount.toFixed(2) : '0.00'}
+                      {formatCurrency(bill?.tip_amount || 0)}
                     </span>
                   </div>
                 </div>
@@ -612,7 +613,7 @@ export default function BillPage() {
                           </div>
                           
                           <div className="text-right text-sm text-gray-600">
-                            Total: ${(editItemData.price * editItemData.quantity).toFixed(2)}
+                            Total: {formatCurrency(editItemData.price * editItemData.quantity)}
                           </div>
                         </div>
                       ) : (
@@ -621,12 +622,12 @@ export default function BillPage() {
                           <div className="flex-1">
                             <h4 className="font-medium text-gray-900">{item.name}</h4>
                             <p className="text-sm text-gray-500">
-                              Price: ${item.price.toFixed(2)} × Quantity: {item.quantity}
+                              Price: {formatCurrency(item.price)} × Quantity: {item.quantity}
                             </p>
                           </div>
                           <div className="flex items-center gap-3">
                             <span className="font-semibold text-gray-900">
-                              ${(item.price * item.quantity).toFixed(2)}
+                              {formatCurrency(item.price * item.quantity)}
                             </span>
                               <button
                                onClick={() => startEditingItem(item)}
@@ -643,19 +644,19 @@ export default function BillPage() {
                   <div className="pt-3 border-t border-gray-200 gap-4">
                     <div className="flex justify-between items-center font-semibold gap-4">
                       <span className="text-gray-900">Subtotal:</span>
-                      <span className="text-gray-900">${billWithItems.items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}</span>
+                      <span className="text-gray-900">{formatCurrency(billWithItems.items.reduce((sum, item) => sum + (item.price * item.quantity), 0))}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm text-gray-600 gap-4">
                       <span className="text-gray-900 mt-1">Tax:</span>
-                      <span className="text-gray-900 mt-1">${bill?.tax_amount ? bill.tax_amount.toFixed(2) : '0.00'}</span>
+                      <span className="text-gray-900 mt-1">{formatCurrency(bill?.tax_amount || 0)}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm text-gray-600 gap-4 mb-4">
                       <span className="text-gray-900 mt-1">Tip:</span>
-                      <span className="text-gray-900 mt-1">${bill?.tip_amount ? bill.tip_amount.toFixed(2) : '0.00'}</span>
+                      <span className="text-gray-900 mt-1">{formatCurrency(bill?.tip_amount || 0)}</span>
                     </div>
                     <div className="flex justify-between items-center font-semibold text-lg pt-2 border-t border-gray-200 gap-4">
                       <span className="text-gray-900">Total:</span>
-                      <span className="text-gray-900">${(billWithItems.items.reduce((sum, item) => sum + (item.price * item.quantity), 0) + (bill?.tax_amount || 0) + (bill?.tip_amount || 0)).toFixed(2)}</span>
+                      <span className="text-gray-900">{formatCurrency(billWithItems.items.reduce((sum, item) => sum + (item.price * item.quantity), 0) + (bill?.tax_amount || 0) + (bill?.tip_amount || 0))}</span>
                     </div>
                   </div>
                 </div>

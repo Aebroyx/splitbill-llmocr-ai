@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { PlusIcon, UserIcon, CheckIcon, PencilIcon, TrashIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { BillItem, BillParticipant, billService } from '../lib/services/billService';
 import toast from 'react-hot-toast';
+import { formatCurrency } from '../lib/utils/currency';
 
 interface ParticipantManagerProps {
   billId: string;
@@ -314,52 +315,64 @@ export default function ParticipantManager({
         {/* Participants List */}
         <div className="space-y-3">
           {participants.map((participant) => (
-            <div key={participant.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <UserIcon className="w-5 h-5 text-gray-500" />
-                {editingParticipant === participant.id ? (
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="px-2 py-1 border border-gray-300 rounded focus:border-primary focus:ring-primary text-gray-900"
-                      onKeyPress={(e) => e.key === 'Enter' && handleSaveEdit(participant.id)}
-                      autoFocus
-                    />
+            <div key={participant.id} className="p-3 bg-gray-50 rounded-lg">
+              {/* Mobile Layout: Stack vertically */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                {/* Name Section */}
+                <div className="flex items-center gap-3 min-w-0">
+                  <UserIcon className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                  {editingParticipant === participant.id ? (
+                    <div className="flex gap-2 min-w-0 flex-1">
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="flex-1 min-w-0 px-2 py-1 border border-gray-300 rounded focus:border-primary focus:ring-primary text-gray-900"
+                        onKeyPress={(e) => e.key === 'Enter' && handleSaveEdit(participant.id)}
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => handleSaveEdit(participant.id)}
+                        className="text-green-600 hover:text-green-700 flex-shrink-0"
+                      >
+                        <CheckIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="font-medium text-gray-900 truncate">{participant.name}</span>
+                  )}
+                </div>
+                
+                {/* Total and Actions Section */}
+                <div className="flex items-center justify-between sm:justify-end gap-3">
+                  {/* Total Amount */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500 font-medium">
+                      Total:
+                    </span>
+                    <span className="text-gray-900 font-bold text-lg sm:text-xl">
+                      {formatCurrency(getParticipantTotalWithTaxTip(participant.id))}
+                    </span>
+                  </div>
+                  
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-1">
                     <button
-                      onClick={() => handleSaveEdit(participant.id)}
-                      className="text-green-600 hover:text-green-700"
+                      onClick={() => handleEditParticipant(participant.id, participant.name)}
+                      className="text-primary hover:text-primary-dark hover:bg-indigo-50 p-1.5 rounded-lg transition-colors flex items-center justify-center"
+                      title="Edit participant name"
                     >
-                      <CheckIcon className="w-4 h-4" />
+                      <PencilIcon className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleRemoveParticipant(participant.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-lg transition-colors flex items-center justify-center"
+                      title="Delete participant"
+                    >
+                      <TrashIcon className="w-4 h-4" />
                     </button>
                   </div>
-                ) : (
-                  <span className="font-medium text-gray-900">{participant.name}</span>
-                )}
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-500 font-bold text-l">
-                  Total:
-                </span>
-                <span className="text-gray-900 font-bold text-xl">
-                  ${getParticipantTotalWithTaxTip(participant.id).toFixed(2)}
-                </span>
-                <button
-                  onClick={() => handleEditParticipant(participant.id, participant.name)}
-                  className="text-primary hover:text-primary-dark hover:bg-indigo-50 p-1.5 rounded-lg transition-colors flex items-center justify-center"
-                  title="Edit participant name"
-                >
-                  <PencilIcon className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleRemoveParticipant(participant.id)}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-lg transition-colors flex items-center justify-center"
-                  title="Delete participant"
-                >
-                  <TrashIcon className="w-4 h-4" />
-                </button>
+                </div>
               </div>
             </div>
           ))}
@@ -386,7 +399,7 @@ export default function ParticipantManager({
                   <div>
                     <h4 className="font-medium text-gray-900">{item.name}</h4>
                     <p className="text-sm text-gray-500">
-                      ${item.price.toFixed(2)} × {item.quantity} = ${(item.price * item.quantity).toFixed(2)}
+                      {formatCurrency(item.price)} × {item.quantity} = {formatCurrency(item.price * item.quantity)}
                     </p>
                   </div>
                 </div>
@@ -420,15 +433,15 @@ export default function ParticipantManager({
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Items Total:</span>
-              <span className="font-medium text-gray-900">${getTotalItems().toFixed(2)}</span>
+              <span className="font-medium text-gray-900">{formatCurrency(getTotalItems())}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Assigned Items:</span>
-              <span className="font-medium text-gray-900">${getTotalAssigned().toFixed(2)}</span>
+              <span className="font-medium text-gray-900">{formatCurrency(getTotalAssigned())}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Unassigned Items:</span>
-              <span className="font-medium text-gray-900">${getUnassignedItemsTotal().toFixed(2)}</span>
+              <span className="font-medium text-gray-900">{formatCurrency(getUnassignedItemsTotal())}</span>
             </div>
             
             {/* Tax and Tip Breakdown */}
@@ -440,18 +453,18 @@ export default function ParticipantManager({
                     {bill.tax_amount > 0 && (
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Tax Amount:</span>
-                        <span className="font-medium text-gray-900">${bill.tax_amount.toFixed(2)}</span>
+                        <span className="font-medium text-gray-900">{formatCurrency(bill.tax_amount)}</span>
                       </div>
                     )}
                     {bill.tip_amount > 0 && (
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Tip / Service Amount:</span>
-                        <span className="font-medium text-gray-900">${bill.tip_amount.toFixed(2)}</span>
+                        <span className="font-medium text-gray-900">{formatCurrency(bill.tip_amount)}</span>
                       </div>
                     )}
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Total Tax + Tip/Service:</span>
-                      <span className="font-medium text-gray-900">${((bill.tax_amount || 0) + (bill.tip_amount || 0)).toFixed(2)}</span>
+                      <span className="font-medium text-gray-900">{formatCurrency((bill.tax_amount || 0) + (bill.tip_amount || 0))}</span>
                     </div>
                     <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
                       Tax and tip/service are distributed proportionally based on each participant&apos;s share of items purchased
@@ -478,10 +491,10 @@ export default function ParticipantManager({
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-gray-900">${taxTipShare.toFixed(2)}</div>
+                            <div className="text-gray-900">{formatCurrency(taxTipShare)}</div>
                             <div className="text-xs text-gray-500">
-                              Tax: ${((bill?.tax_amount || 0) * (itemTotal / totalAssignedItems)).toFixed(2)} + 
-                              Tip: ${((bill?.tip_amount || 0) * (itemTotal / totalAssignedItems)).toFixed(2)}
+                              Tax: {formatCurrency((bill?.tax_amount || 0) * (itemTotal / totalAssignedItems))} + 
+                              Tip: {formatCurrency((bill?.tip_amount || 0) * (itemTotal / totalAssignedItems))}
                             </div>
                           </div>
                         </div>
@@ -527,9 +540,9 @@ export default function ParticipantManager({
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-gray-900">${itemTotal.toFixed(2)}</div>
+                        <div className="text-gray-900">{formatCurrency(itemTotal)}</div>
                         <div className="text-xs text-gray-500">
-                          ${costPerPerson.toFixed(2)} each
+                          {formatCurrency(costPerPerson)} each
                         </div>
                       </div>
                     </div>
@@ -546,10 +559,10 @@ export default function ParticipantManager({
                   <div key={participant.id} className="flex justify-between items-center text-sm">
                     <span className="text-gray-600">{participant.name}:</span>
                     <div className="text-right">
-                      <div className="font-medium text-gray-900">${getParticipantTotalWithTaxTip(participant.id).toFixed(2)}</div>
+                      <div className="font-medium text-gray-900">{formatCurrency(getParticipantTotalWithTaxTip(participant.id))}</div>
                       <div className="text-xs text-gray-500">
-                        Items: ${getParticipantTotal(participant.id).toFixed(2)} + 
-                        Tax/Tip: ${getParticipantTaxTipShare(participant.id).toFixed(2)}
+                        Items: {formatCurrency(getParticipantTotal(participant.id))} + 
+                        Tax/Tip: {formatCurrency(getParticipantTaxTipShare(participant.id))}
                       </div>
                     </div>
                   </div>
@@ -560,7 +573,7 @@ export default function ParticipantManager({
             <div className="pt-3 border-t border-gray-200 mt-3">
               <div className="flex justify-between items-center font-medium">
                 <span className="text-gray-900">Total Bill:</span>
-                <span className="text-gray-900">${getTotalBillWithTaxTip().toFixed(2)}</span>
+                <span className="text-gray-900">{formatCurrency(getTotalBillWithTaxTip())}</span>
               </div>
             </div>
           </div>
