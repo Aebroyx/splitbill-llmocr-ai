@@ -57,36 +57,43 @@ export default function BillStatusIndicator({ status, isPolling, lastUpdated, on
   const IconComponent = config.icon;
 
   return (
-    <div className={`inline-flex items-center gap-3 px-4 py-3 rounded-lg ${config.bgColor}`}>
-      <div className="flex items-center gap-2">
-        <IconComponent className={`w-5 h-5 ${config.color}`} />
-        <span className={`font-medium ${config.color}`}>{config.text}</span>
+    <div className={`w-full ${config.bgColor} rounded-lg p-4`}>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        {/* Status Icon and Text */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <IconComponent className={`w-5 h-5 ${config.color}`} />
+          <span className={`font-medium ${config.color}`}>{config.text}</span>
+        </div>
+        
+        {/* Processing Spinner */}
+        {isPolling && status === 'processing' && (
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            <span className="text-sm text-blue-600">Processing...</span>
+          </div>
+        )}
+        
+        {/* Retry Button */}
+        {status === 'failed' && onRetry && (
+          <button
+            onClick={onRetry}
+            className="flex items-center gap-2 px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors flex-shrink-0"
+          >
+            <ArrowPathIcon className="w-4 h-4" />
+            Try Again
+          </button>
+        )}
+        
+        {/* Last Updated Timestamp */}
+        {lastUpdated && (
+          <span className="text-xs text-gray-500 flex-shrink-0">
+            Last updated: {lastUpdated.toLocaleTimeString()}
+          </span>
+        )}
       </div>
       
-      {isPolling && status === 'processing' && (
-        <div className="flex items-center gap-2">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-          <span className="text-sm text-blue-600">Processing...</span>
-        </div>
-      )}
-      
-      {status === 'failed' && onRetry && (
-        <button
-          onClick={onRetry}
-          className="flex items-center gap-2 px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
-        >
-          <ArrowPathIcon className="w-4 h-4" />
-          Try Again
-        </button>
-      )}
-      
-      {lastUpdated && (
-        <span className="text-xs text-gray-500">
-          Last updated: {lastUpdated.toLocaleTimeString()}
-        </span>
-      )}
-      
-      <div className="text-sm text-gray-600 ml-2">
+      {/* Description - Always on new line for better readability */}
+      <div className="text-sm text-gray-600 mt-2 break-words">
         {config.description}
       </div>
     </div>
