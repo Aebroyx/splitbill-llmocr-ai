@@ -9,6 +9,7 @@ import { useRef } from 'react';
 import { useBillStatus } from '../../lib/hooks/useBillStatus';
 import BillStatusIndicator from '../../components/BillStatusIndicator';
 import ParticipantManager from '../../components/ParticipantManager';
+import StepIndicator from '../../components/StepIndicator';
 import Image from 'next/image';
 
 
@@ -25,7 +26,7 @@ export default function BillPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [participants, setParticipants] = useState<BillParticipant[]>([]);
   const [itemAssignments, setItemAssignments] = useState<{itemId: number, participantId: number}[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'participants' | 'upload'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'participants' | 'upload'>('upload');
   const [editingItem, setEditingItem] = useState<number | null>(null);
   const [editItemData, setEditItemData] = useState<{name: string, price: number, quantity: number}>({
     name: '',
@@ -63,6 +64,9 @@ export default function BillPage() {
           const updatedBillData = await billService.getBillById(billId);
           setBill(updatedBillData);
           
+          // Switch to overview tab once processing is complete
+          setActiveTab('overview');
+          
           toast.success('Bill processing completed! Items have been extracted.');
         } catch (error) {
           console.error('Error loading bill with items:', error);
@@ -88,6 +92,9 @@ export default function BillPage() {
         
         // If bill is already completed, load everything at once
         if (billData.status === 'completed') {
+          // Switch to overview tab for completed bills
+          setActiveTab('overview');
+          
           try {
             const billWithItemsData = await billService.getBillWithItems(billId);
             setBillWithItems(billWithItemsData);
@@ -489,55 +496,46 @@ export default function BillPage() {
               <div className="text-xs text-gray-400 mb-4">
                 Created: {bill && new Date(bill.created_at).toLocaleDateString()}
               </div>
-              
-              {/* Status Indicator */}
-              <div className="mb-4">
-                <BillStatusIndicator 
-                  status={status} 
-                  isPolling={isPolling} 
-                  lastUpdated={lastUpdated}
-                  onRetry={status === 'failed' ? handleRetryUpload : undefined}
-                />
-              </div>
             </div>
 
             {/* Share Link Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Share this bill</h3>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                      <span className="text-sm text-gray-600 font-mono break-all">
-                        {typeof window !== 'undefined' ? window.location.href : ''}
-                      </span>
-                    </div>
-                    <button
-                      onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(window.location.href);
-                          toast.success('Link copied to clipboard!');
-                        } catch {
-                          // Fallback for older browsers
-                          const textArea = document.createElement('textarea');
-                          textArea.value = window.location.href;
-                          document.body.appendChild(textArea);
-                          textArea.select();
-                          document.execCommand('copy');
-                          document.body.removeChild(textArea);
-                          toast.success('Link copied to clipboard!');
-                        }
-                      }}
-                      className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-                    >
-                      <ClipboardDocumentIcon className="w-4 h-4" />
-                      Copy Link
-                    </button>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">Share this bill</h3>
+                
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 min-w-0">
+                    <span className="text-xs sm:text-sm text-gray-600 font-mono break-all block">
+                      {typeof window !== 'undefined' ? window.location.href : ''}
+                    </span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Share this link with others so they can view and participate in splitting the bill
-                  </p>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(window.location.href);
+                        toast.success('Link copied to clipboard!');
+                      } catch {
+                        // Fallback for older browsers
+                        const textArea = document.createElement('textarea');
+                        textArea.value = window.location.href;
+                        document.body.appendChild(textArea);
+                        textArea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textArea);
+                        toast.success('Link copied to clipboard!');
+                      }
+                    }}
+                    className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm sm:text-base whitespace-nowrap"
+                  >
+                    <ClipboardDocumentIcon className="w-4 h-4" />
+                    <span className="hidden sm:inline">Copy Link</span>
+                    <span className="sm:hidden">Copy</span>
+                  </button>
                 </div>
+                
+                <p className="text-xs text-gray-500">
+                  Share this link with others so they can view and participate in splitting the bill
+                </p>
               </div>
             </div>
 
@@ -803,6 +801,24 @@ export default function BillPage() {
     }
   };
 
+  // Determine current step based on bill status and completion
+  const getCurrentStep = () => {
+    // Step 1: Bill Created (always completed since we're on this page)
+    // Step 2: Image Uploaded (completed when status is not 'pending')
+    // Step 3: Processing Complete (completed when status is 'completed')
+    
+    if (status === 'completed') {
+      return 3; // All steps completed
+    } else if (status === 'processing' || status === 'failed') {
+      return 2; // Image uploaded, processing in progress or failed
+    } else if (status === 'pending' && bill) {
+      return 1; // Bill created, waiting for image upload
+    }
+    return 1; // Default to step 1
+  };
+
+  const stepLabels = ['Bill Created', 'Image Uploaded', 'Processing Complete'];
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -822,48 +838,169 @@ export default function BillPage() {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Step Indicator */}
+        <div className="mb-8">
+          <StepIndicator 
+            currentStep={getCurrentStep()} 
+            totalSteps={3}
+            stepLabels={stepLabels}
+          />
+        </div>
         <div className="max-w-4xl mx-auto">
-          {/* Tabs */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-1 mb-8">
-            <div className="flex space-x-1">
-              <button
-                onClick={() => setActiveTab('overview')}
-                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
-                  activeTab === 'overview'
-                    ? 'bg-primary text-white'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                Overview
-              </button>
-              <button
-                onClick={() => setActiveTab('upload')}
-                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
-                  activeTab === 'upload'
-                    ? 'bg-primary text-white'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-                disabled={status === 'completed'}
-              >
-                Upload Image
-              </button>
-              <button
-                onClick={() => setActiveTab('participants')}
-                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
-                  activeTab === 'participants'
-                    ? 'bg-primary text-white'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-                disabled={!billWithItems || !billWithItems.items || billWithItems.items.length === 0}
-              >
-                <UserGroupIcon className="w-4 h-4 inline mr-2" />
-                Participants
-              </button>
+          {/* Tabs - Only show when processing is complete (step 3) */}
+          {getCurrentStep() >= 3 && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-1 mb-8">
+              <div className="flex space-x-1">
+                <button
+                  onClick={() => setActiveTab('overview')}
+                  className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                    activeTab === 'overview'
+                      ? 'bg-primary text-white'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  Overview
+                </button>
+                <button
+                  onClick={() => setActiveTab('participants')}
+                  className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                    activeTab === 'participants'
+                      ? 'bg-primary text-white'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <UserGroupIcon className="w-4 h-4 inline mr-2" />
+                  Participants
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Tab Content */}
-          {renderTabContent()}
+          {getCurrentStep() >= 3 ? renderTabContent() : (
+            // Show upload content when tabs are hidden (steps 1-2)
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4 text-center">
+                Upload Bill Image
+              </h3>
+              
+              {status === 'failed' && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <XCircleIcon className="w-6 h-6 text-red-600" />
+                    <div>
+                      <h4 className="font-medium text-red-800">Previous upload failed</h4>
+                      <p className="text-sm text-red-700">
+                        The AI processing service encountered an error. You can try uploading the image again.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <div className="space-y-4">
+                {/* Image Preview */}
+                {imagePreview && (
+                  <div className="relative">
+                    <Image 
+                      src={imagePreview} 
+                      alt="Bill preview" 
+                      width={400}
+                      height={192}
+                      className="w-full h-48 object-cover rounded-lg border border-gray-300"
+                    />
+                    <button
+                      onClick={() => {
+                        setSelectedImage(null);
+                        setImagePreview(null);
+                      }}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                    >
+                      <XMarkIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Camera Section */}
+                {!imagePreview && (
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        className="w-full h-48 object-cover rounded-lg border border-gray-300 bg-gray-100"
+                      />
+                      <canvas ref={canvasRef} className="hidden" />
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <button
+                        onClick={startCamera}
+                        className="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                      >
+                        <CameraIcon className="w-4 h-4" />
+                        Start Camera
+                      </button>
+                      <button
+                        onClick={capturePhoto}
+                        className="flex-1 px-4 py-2 bg-secondary hover:bg-secondary-dark text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                      >
+                        <PhotoIcon className="w-4 h-4" />
+                        Capture
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* File Upload */}
+                {!imagePreview && (
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Or upload from device
+                    </label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileInputChange}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-gray-50 transition-colors text-gray-600 hover:text-gray-900"
+                    >
+                      <PhotoIcon className="w-6 h-6 mx-auto mb-2" />
+                      <span>Click to select image</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Upload Button */}
+                {selectedImage && (
+                  <button
+                    onClick={handleImageSubmit}
+                    disabled={isUploading}
+                    className="w-full px-4 py-3 bg-primary hover:bg-primary-dark disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors duration-200"
+                  >
+                    {isUploading ? 'Uploading...' : 'Upload Image'}
+                  </button>
+                )}
+
+                {/* Status Indicator - Show after upload */}
+                {(status === 'processing' || status === 'pending' || status === 'failed') && (
+                  <div className="mt-6 pt-4 border-t border-gray-200">
+                    <BillStatusIndicator 
+                      status={status} 
+                      isPolling={isPolling} 
+                      lastUpdated={lastUpdated}
+                      onRetry={status === 'failed' ? handleRetryUpload : undefined}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Error Display */}
           {statusError && (

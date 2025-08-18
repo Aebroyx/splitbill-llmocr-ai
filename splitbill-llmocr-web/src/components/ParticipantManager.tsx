@@ -224,42 +224,43 @@ export default function ParticipantManager({
   return (
     <div className="space-y-6">
       {/* Share Link Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Share this bill</h3>
-            <div className="flex items-center gap-3">
-              <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                <span className="text-sm text-gray-600 font-mono break-all">
-                  {typeof window !== 'undefined' ? window.location.href : ''}
-                </span>
-              </div>
-              <button
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(window.location.href);
-                    toast.success('Link copied to clipboard!');
-                  } catch {
-                    // Fallback for older browsers
-                    const textArea = document.createElement('textarea');
-                    textArea.value = window.location.href;
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                    toast.success('Link copied to clipboard!');
-                  }
-                }}
-                className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-              >
-                <ClipboardDocumentIcon className="w-4 h-4" />
-                Copy Link
-              </button>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-900">Share this bill</h3>
+          
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 min-w-0">
+              <span className="text-xs sm:text-sm text-gray-600 font-mono break-all block">
+                {typeof window !== 'undefined' ? window.location.href : ''}
+              </span>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Share this link with others so they can view and participate in splitting the bill
-            </p>
+            <button
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(window.location.href);
+                  toast.success('Link copied to clipboard!');
+                } catch {
+                  // Fallback for older browsers
+                  const textArea = document.createElement('textarea');
+                  textArea.value = window.location.href;
+                  document.body.appendChild(textArea);
+                  textArea.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(textArea);
+                  toast.success('Link copied to clipboard!');
+                }
+              }}
+              className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm sm:text-base whitespace-nowrap"
+            >
+              <ClipboardDocumentIcon className="w-4 h-4" />
+              <span className="hidden sm:inline">Copy Link</span>
+              <span className="sm:hidden">Copy</span>
+            </button>
           </div>
+          
+          <p className="text-xs text-gray-500">
+            Share this link with others so they can view and participate in splitting the bill
+          </p>
         </div>
       </div>
 
@@ -279,7 +280,7 @@ export default function ParticipantManager({
         {/* Add New Participant */}
         {isAddingParticipant && (
           <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <input
                 type="text"
                 value={newParticipantName}
@@ -289,21 +290,23 @@ export default function ParticipantManager({
                 onKeyPress={(e) => e.key === 'Enter' && handleAddParticipant()}
                 autoFocus
               />
-              <button
-                onClick={handleAddParticipant}
-                className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-              >
-                Add
-              </button>
-              <button
-                onClick={() => {
-                  setIsAddingParticipant(false);
-                  setNewParticipantName('');
-                }}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition-colors flex items-center gap-2"
-              >
-                Cancel
-              </button>
+              <div className="flex gap-2 sm:gap-3">
+                <button
+                  onClick={handleAddParticipant}
+                  className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                >
+                  Add
+                </button>
+                <button
+                  onClick={() => {
+                    setIsAddingParticipant(false);
+                    setNewParticipantName('');
+                  }}
+                  className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         )}
