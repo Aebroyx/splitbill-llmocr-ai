@@ -14,38 +14,73 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// COMMENTED OUT: Using external cron job for keep-alive instead
 // startKeepAlive starts a background goroutine that pings the health endpoint
 // to keep the Render free tier instance alive
-func startKeepAlive(serverAddr string) {
+// NOTE: This function is preserved for future use if needed
+/*
+func startKeepAlive() {
 	// Only enable keep-alive in production
 	if os.Getenv("APP_ENV") != "production" {
 		log.Println("Keep-alive disabled in development mode")
 		return
 	}
 
+	// Get the external URL for self-pinging
+	// On Render, use the service URL. For other deployments, fallback to localhost
+	externalURL := os.Getenv("RENDER_EXTERNAL_URL")
+	if externalURL == "" {
+		// Fallback for other hosting platforms
+		externalURL = os.Getenv("EXTERNAL_URL")
+		if externalURL == "" {
+			log.Println("No RENDER_EXTERNAL_URL or EXTERNAL_URL set, keep-alive disabled")
+			return
+		}
+	}
+
+	log.Printf("Keep-alive will ping: %s/health", externalURL)
+
 	// Ping every 10 minutes (10 * 60 = 600 seconds)
 	// This ensures the instance stays alive on Render's free tier
 	ticker := time.NewTicker(10 * time.Minute)
-	defer ticker.Stop()
 
 	// Start the keep-alive loop
 	go func() {
+		defer ticker.Stop()
 		log.Println("Starting keep-alive mechanism - pinging every 10 minutes")
 
-		// Ping immediately on startup
-		pingHealthEndpoint(serverAddr)
+		// Ping immediately on startup (with a small delay to ensure server is ready)
+		time.Sleep(30 * time.Second)
+		pingHealthEndpoint(externalURL)
 
 		for range ticker.C {
-			pingHealthEndpoint(serverAddr)
+			pingHealthEndpoint(externalURL)
 		}
 	}()
 }
+*/
 
+// COMMENTED OUT: Using external cron job for keep-alive instead
 // pingHealthEndpoint sends a GET request to the health endpoint
-func pingHealthEndpoint(serverAddr string) {
-	url := "http://" + serverAddr + "/health"
+// NOTE: This function is preserved for future use if needed
+/*
+func pingHealthEndpoint(externalURL string) {
+	// Construct the full health endpoint URL
+	var url string
+	if strings.HasPrefix(externalURL, "http://") || strings.HasPrefix(externalURL, "https://") {
+		url = externalURL + "/health"
+	} else {
+		url = "https://" + externalURL + "/health"
+	}
 
-	resp, err := http.Get(url)
+	log.Printf("Keep-alive pinging: %s", url)
+
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	resp, err := client.Get(url)
 	if err != nil {
 		log.Printf("Keep-alive ping failed: %v", err)
 		return
@@ -53,11 +88,12 @@ func pingHealthEndpoint(serverAddr string) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusOK {
-		log.Printf("Keep-alive ping successful: %s", time.Now().Format("15:04:05"))
+		log.Printf("Keep-alive ping successful at %s - Status: %d", time.Now().Format("15:04:05"), resp.StatusCode)
 	} else {
-		log.Printf("Keep-alive ping returned status: %d", resp.StatusCode)
+		log.Printf("Keep-alive ping returned status: %d at %s", resp.StatusCode, time.Now().Format("15:04:05"))
 	}
 }
+*/
 
 func main() {
 	// Set environment variable if not already set
@@ -217,8 +253,9 @@ func main() {
 		}
 	}
 
+	// COMMENTED OUT: Using external cron job for keep-alive instead
 	// Start the keep-alive mechanism
-	startKeepAlive(cfg.GetServerAddr())
+	// startKeepAlive()
 
 	// Start server
 	log.Printf("Server starting on %s", cfg.GetServerAddr())
