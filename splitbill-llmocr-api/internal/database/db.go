@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/Aebroyx/splitbill-llmocr-api/internal/config"
 	"github.com/Aebroyx/splitbill-llmocr-api/internal/domain/models"
@@ -57,7 +58,19 @@ func NewConnection(cfg *config.Config) (*DB, error) {
 		return nil, fmt.Errorf("failed to connect to database: %v", err)
 	}
 
-	log.Printf("Successfully connected to database")
+	// Configure connection pool settings to prevent connection timeouts
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get underlying sql.DB: %v", err)
+	}
+
+	// Set connection pool parameters
+	sqlDB.SetMaxOpenConns(25)                  // Maximum number of open connections
+	sqlDB.SetMaxIdleConns(5)                   // Maximum number of idle connections
+	sqlDB.SetConnMaxLifetime(15 * time.Minute) // Maximum lifetime of a connection (15 minutes)
+	sqlDB.SetConnMaxIdleTime(8 * time.Minute)  // Maximum idle time for a connection (8 minutes)
+
+	log.Printf("Successfully connected to database with connection pool configured")
 
 	// Auto-migrate models
 	log.Printf("Running database migrations...")
@@ -67,4 +80,19 @@ func NewConnection(cfg *config.Config) (*DB, error) {
 	log.Printf("Database migrations completed successfully")
 
 	return &DB{db}, nil
+}
+
+// HealthCheck performs a database health check by pinging the database
+func (d *DB) HealthCheck() error {
+	sqlDB, err := d.DB.DB()
+	if err != nil {
+		return fmt.Errorf("failed to get underlying sql.DB: %v", err)
+	}
+
+	// Ping the database to check connectivity
+	if err := sqlDB.Ping(); err != nil {
+		return fmt.Errorf("database ping failed: %v", err)
+	}
+
+	return nil
 }

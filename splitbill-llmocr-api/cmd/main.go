@@ -197,10 +197,23 @@ func main() {
 
 	// Health check endpoint for keep-alive and monitoring
 	router.GET("/health", func(c *gin.Context) {
+		// Check database connectivity
+		if err := db.HealthCheck(); err != nil {
+			log.Printf("Health check failed - database connectivity issue: %v", err)
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"status":      "unhealthy",
+				"error":       "database connectivity failed",
+				"timestamp":   time.Now().UTC().Format(time.RFC3339),
+				"environment": os.Getenv("APP_ENV"),
+			})
+			return
+		}
+
 		c.JSON(http.StatusOK, gin.H{
 			"status":      "healthy",
 			"timestamp":   time.Now().UTC().Format(time.RFC3339),
 			"environment": os.Getenv("APP_ENV"),
+			"database":    "connected",
 		})
 	})
 
