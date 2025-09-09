@@ -65,6 +65,17 @@ export interface UpdateBillPayload {
   tip_amount?: number;
 }
 
+export interface ManualItemData {
+  items: Array<{
+    name: string;
+    price: number;
+    quantity: number;
+  }>;
+  tax: number;
+  tip: number;
+  total: number;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 export const billService = {
@@ -289,6 +300,24 @@ export const billService = {
         throw new Error((error.response.data as { message: string }).message);
       }
       throw new Error('Failed to fetch bill summary');
+    }
+  },
+
+  async processManualData(billId: string, data: ManualItemData): Promise<{ message: string }> {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/bills/${billId}/process-data`, {
+        extracted_data: JSON.stringify(data)
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      return response.data as { message: string };
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'data' in error.response && error.response.data && typeof error.response.data === 'object' && 'message' in error.response.data) {
+        throw new Error((error.response.data as { message: string }).message);
+      }
+      throw new Error('Failed to process manual data');
     }
   },
 };

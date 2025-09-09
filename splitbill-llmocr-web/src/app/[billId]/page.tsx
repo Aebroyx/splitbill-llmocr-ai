@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { billService, Bill, BillWithItems, BillParticipant, BillItem } from '../../lib/services/billService';
-import { CameraIcon, PhotoIcon, XMarkIcon, ArrowLeftIcon, ExclamationTriangleIcon, UserGroupIcon, DocumentTextIcon, XCircleIcon, PencilIcon, ClipboardDocumentIcon, UserIcon } from '@heroicons/react/24/outline';
+import { billService, Bill, BillWithItems, BillParticipant, BillItem, ManualItemData } from '../../lib/services/billService';
+import { CameraIcon, PhotoIcon, XMarkIcon, ArrowLeftIcon, ExclamationTriangleIcon, UserGroupIcon, DocumentTextIcon, XCircleIcon, PencilIcon, ClipboardDocumentIcon, UserIcon, TrashIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { useRef } from 'react';
 import { useBillStatus } from '../../lib/hooks/useBillStatus';
@@ -27,7 +27,7 @@ export default function BillPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [participants, setParticipants] = useState<BillParticipant[]>([]);
   const [itemAssignments, setItemAssignments] = useState<{itemId: number, participantId: number}[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'participants' | 'upload'>('upload');
+  const [activeTab, setActiveTab] = useState<'overview' | 'participants'>('overview');
   const [editingItem, setEditingItem] = useState<number | null>(null);
   const [editItemData, setEditItemData] = useState<{name: string, price: number, quantity: number}>({
     name: '',
@@ -39,6 +39,15 @@ export default function BillPage() {
     tax_amount: 0,
     tip_amount: 0
   });
+  
+  // Manual entry state
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [manualItems, setManualItems] = useState<{name: string, price: number, quantity: number}[]>([
+    { name: '', price: 0, quantity: 1 }
+  ]);
+  const [manualTax, setManualTax] = useState(0);
+  const [manualTip, setManualTip] = useState(0);
+  const [isSubmittingManual, setIsSubmittingManual] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -313,11 +322,73 @@ export default function BillPage() {
   };
 
   const handleRetryUpload = () => {
-    // Reset status and allow user to upload again
-    setActiveTab('upload');
-    // Clear any previous image selection
+    // Clear any previous image selection to allow user to upload again
     setSelectedImage(null);
     setImagePreview(null);
+  };
+
+  // Manual entry functions
+  const addManualItem = () => {
+    setManualItems([...manualItems, { name: '', price: 0, quantity: 1 }]);
+  };
+
+  const removeManualItem = (index: number) => {
+    if (manualItems.length > 1) {
+      setManualItems(manualItems.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateManualItem = (index: number, field: 'name' | 'price' | 'quantity', value: string | number) => {
+    const updatedItems = [...manualItems];
+    updatedItems[index] = {
+      ...updatedItems[index],
+      [field]: field === 'name' ? value : (typeof value === 'string' ? parseFloat(value) || 0 : value)
+    };
+    setManualItems(updatedItems);
+  };
+
+  const calculateManualTotal = () => {
+    const itemsTotal = manualItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    return itemsTotal + manualTax + manualTip;
+  };
+
+  const handleManualSubmit = async () => {
+    // Validate items
+    const validItems = manualItems.filter(item => item.name.trim() && item.price > 0);
+    if (validItems.length === 0) {
+      toast.error('Please add at least one item with a name and price');
+      return;
+    }
+
+    setIsSubmittingManual(true);
+    
+    try {
+      // Prepare the data in the format expected by the API
+      const manualData: ManualItemData = {
+        items: validItems,
+        tax: manualTax,
+        tip: manualTip,
+        total: calculateManualTotal()
+      };
+
+      await billService.processManualData(billId, manualData);
+      toast.success('Items added successfully!');
+      
+      // Reset manual entry state
+      setShowManualEntry(false);
+      setManualItems([{ name: '', price: 0, quantity: 1 }]);
+      setManualTax(0);
+      setManualTip(0);
+      
+      // Refresh the page to show updated state
+      window.location.reload();
+      
+    } catch (error) {
+      console.error('Error submitting manual data:', error);
+      toast.error('Failed to add items. Please try again.');
+    } finally {
+      setIsSubmittingManual(false);
+    }
   };
 
   const startEditingItem = (item: BillItem) => {
@@ -789,118 +860,6 @@ export default function BillPage() {
           </div>
         );
 
-      case 'upload':
-        return (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4 text-center">
-              Upload Bill Image
-            </h3>
-            
-            {status === 'failed' && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <XCircleIcon className="w-6 h-6 text-red-600" />
-                  <div>
-                    <h4 className="font-medium text-red-800">Previous upload failed</h4>
-                    <p className="text-sm text-red-700">
-                      The AI processing service encountered an error. You can try uploading the image again.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            <div className="space-y-4">
-              {/* Image Preview */}
-              {imagePreview && (
-                <div className="relative">
-                  <Image 
-                    src={imagePreview} 
-                    alt="Bill preview" 
-                    width={400}
-                    height={192}
-                    className="w-full h-48 object-cover rounded-lg border border-gray-300"
-                  />
-                  <button
-                    onClick={() => {
-                      setSelectedImage(null);
-                      setImagePreview(null);
-                    }}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                  >
-                    <XMarkIcon className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
-
-              {/* Camera Section */}
-              {!imagePreview && (
-                <div className="space-y-3">
-                  <div className="relative">
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      playsInline
-                      className="w-full h-48 object-cover rounded-lg border border-gray-300 bg-gray-100"
-                    />
-                    <canvas ref={canvasRef} className="hidden" />
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <button
-                      onClick={startCamera}
-                      className="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-                    >
-                      <CameraIcon className="w-4 h-4" />
-                      Start Camera
-                    </button>
-                    <button
-                      onClick={capturePhoto}
-                      className="flex-1 px-4 py-2 bg-secondary hover:bg-secondary-dark text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-                    >
-                      <PhotoIcon className="w-4 h-4" />
-                      Capture
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* File Upload */}
-              {!imagePreview && (
-                <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Or upload from device
-                  </label>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileInputChange}
-                    className="hidden"
-                  />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-gray-50 transition-colors text-gray-600 hover:text-gray-900"
-                  >
-                    <PhotoIcon className="w-6 h-6 mx-auto mb-2" />
-                    <span>Click to select image</span>
-                  </button>
-                </div>
-              )}
-
-              {/* Upload Button */}
-              {selectedImage && (
-                <button
-                  onClick={handleImageSubmit}
-                  disabled={isUploading}
-                  className="w-full px-4 py-3 bg-primary hover:bg-primary-dark disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors duration-200"
-                >
-                  {isUploading ? 'Uploading...' : 'Upload Image'}
-                </button>
-              )}
-            </div>
-          </div>
-        );
 
       default:
         return null;
@@ -987,7 +946,7 @@ export default function BillPage() {
             // Show upload content when tabs are hidden (steps 1-2)
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h3 className="text-xl font-semibold text-gray-900 mb-4 text-center">
-                Upload Bill Image
+                {showManualEntry ? 'Add Items Manually' : 'Upload Bill Image'}
               </h3>
               
               {status === 'failed' && (
@@ -1005,8 +964,149 @@ export default function BillPage() {
               )}
               
               <div className="space-y-4">
-                {/* Image Preview */}
-                {imagePreview && (
+                {/* Manual Entry Form */}
+                {showManualEntry ? (
+                  <div className="space-y-6">
+                    {/* Items List */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-lg font-medium text-gray-900">Items</h4>
+                        <button
+                          onClick={addManualItem}
+                          className="px-3 py-1 bg-primary hover:bg-primary-dark text-white rounded-lg text-sm font-medium transition-colors"
+                        >
+                          + Add Item
+                        </button>
+                      </div>
+                      
+                      {manualItems.map((item, index) => (
+                        <div key={index} className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-12 sm:gap-3 sm:items-end w-full">
+                          <div className="sm:col-span-5">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Item Name
+                            </label>
+                            <input
+                              type="text"
+                              value={item.name}
+                              onChange={(e) => updateManualItem(index, 'name', e.target.value)}
+                              placeholder="Enter item name"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:border-primary focus:ring-primary"
+                            />
+                          </div>
+                          <div className="sm:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Price
+                            </label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={item.price === 0 ? '' : item.price}
+                              onChange={(e) => updateManualItem(index, 'price', e.target.value)}
+                              placeholder="0.00"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:border-primary focus:ring-primary"
+                            />
+                          </div>
+                          <div className="sm:col-span-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Qty
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => updateManualItem(index, 'quantity', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:border-primary focus:ring-primary"
+                            />
+                          </div>
+                          <div className={manualItems.length > 1 ? "sm:col-span-3" : "sm:col-span-4"}>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Total
+                            </label>
+                            <input
+                              type="text"
+                              value={formatCurrency(item.price * item.quantity)}
+                              readOnly
+                              disabled
+                              className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 text-right"
+                            />
+                          </div>
+                          {manualItems.length > 1 && (
+                            <div className="sm:col-span-1 flex justify-center sm:justify-end">
+                              <button
+                                onClick={() => removeManualItem(index)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-lg transition-colors flex items-center justify-center"
+                                title="Delete item"
+                              >
+                                <TrashIcon className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Tax and Tip */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Tax Amount
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={manualTax === 0 ? '' : manualTax}
+                          onChange={(e) => setManualTax(parseFloat(e.target.value) || 0)}
+                          placeholder="0.00"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:border-primary focus:ring-primary"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Tip / Service Amount
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={manualTip === 0 ? '' : manualTip}
+                          onChange={(e) => setManualTip(parseFloat(e.target.value) || 0)}
+                          placeholder="0.00"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:border-primary focus:ring-primary"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Total */}
+                    <div className="pt-4 border-t border-gray-200">
+                      <div className="flex justify-between items-center text-lg font-semibold">
+                        <span className="text-gray-900">Total Bill:</span>
+                        <span className="text-gray-900">{formatCurrency(calculateManualTotal())}</span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                      <button
+                        onClick={() => setShowManualEntry(false)}
+                        className="w-full sm:flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleManualSubmit}
+                        disabled={isSubmittingManual}
+                        className="w-full sm:flex-1 px-4 py-2 bg-primary hover:bg-primary-dark disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+                      >
+                        {isSubmittingManual ? 'Adding Items...' : 'Submit'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Image Preview */}
+                    {imagePreview && (
                   <div className="relative">
                     <Image 
                       src={imagePreview} 
@@ -1103,6 +1203,24 @@ export default function BillPage() {
                       onRetry={status === 'failed' ? handleRetryUpload : undefined}
                     />
                   </div>
+                )}
+
+                {/* Manual Entry Toggle Button - Show as fallback option */}
+                {!showManualEntry && (
+                  <div className="mt-6 pt-4 border-t border-gray-200 text-center">
+                    <p className="text-sm text-gray-500 mb-3">
+                      Having trouble with the image? You can add items manually instead.
+                    </p>
+                    <button
+                      onClick={() => setShowManualEntry(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg border border-gray-300 transition-colors"
+                    >
+                      <DocumentTextIcon className="w-4 h-4" />
+                      Add Items Manually Instead
+                    </button>
+                  </div>
+                )}
+                  </>
                 )}
               </div>
             </div>
