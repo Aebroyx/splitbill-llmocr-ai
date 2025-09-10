@@ -508,6 +508,95 @@ func (h *BillHandler) UpdateItem(c *gin.Context) {
 	c.JSON(http.StatusOK, updatedItem)
 }
 
+// AddItem handles adding a new item to a bill
+func (h *BillHandler) AddItem(c *gin.Context) {
+	billIDStr := c.Param("id")
+	billID, err := uuid.Parse(billIDStr)
+	if err != nil {
+		fmt.Printf("UUID parse error: %v\n", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid bill ID"})
+		return
+	}
+
+	var req struct {
+		Name     string  `json:"name" validate:"required"`
+		Price    float64 `json:"price" validate:"required,min=0"`
+		Quantity int     `json:"quantity" validate:"required,min=1"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		fmt.Printf("JSON bind error: %v\n", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid request: %v", err)})
+		return
+	}
+
+	// Check if bill exists
+	var bill models.Bills
+	if err := h.billService.GetDB().First(&bill, "id = ?", billID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Bill not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to find bill: %v", err)})
+		}
+		return
+	}
+
+	// Create the new item
+	item := &models.Items{
+		BillID:   billID,
+		Name:     req.Name,
+		Price:    req.Price,
+		Quantity: req.Quantity,
+	}
+
+	if err := h.billService.GetDB().Create(item).Error; err != nil {
+		fmt.Printf("Database error creating item: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to create item: %v", err)})
+		return
+	}
+
+	fmt.Printf("Item created successfully: %+v\n", item)
+	c.JSON(http.StatusCreated, item)
+}
+
+// DeleteItem handles deleting an item
+func (h *BillHandler) DeleteItem(c *gin.Context) {
+	itemIDStr := c.Param("id")
+	itemID, err := strconv.ParseUint(itemIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid item ID"})
+		return
+	}
+
+	// Check if item exists
+	var item models.Items
+	if err := h.billService.GetDB().First(&item, itemID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Item not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to find item: %v", err)})
+		}
+		return
+	}
+
+	// Delete item assignments first (cascade delete)
+	if err := h.billService.GetDB().Where("item_id = ?", itemID).Delete(&models.ItemAssignments{}).Error; err != nil {
+		fmt.Printf("Database error deleting item assignments: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to delete item assignments: %v", err)})
+		return
+	}
+
+	// Delete the item
+	if err := h.billService.GetDB().Delete(&item).Error; err != nil {
+		fmt.Printf("Database error deleting item: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to delete item: %v", err)})
+		return
+	}
+
+	fmt.Printf("Item %d deleted successfully\n", itemID)
+	c.JSON(http.StatusOK, gin.H{"message": "Item deleted successfully"})
+}
+
 // UpdateBill handles updating a bill's details
 func (h *BillHandler) UpdateBill(c *gin.Context) {
 	billIDStr := c.Param("id")

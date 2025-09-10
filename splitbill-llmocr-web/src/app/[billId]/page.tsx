@@ -49,6 +49,16 @@ export default function BillPage() {
   const [manualTip, setManualTip] = useState(0);
   const [isSubmittingManual, setIsSubmittingManual] = useState(false);
   
+  // Manual mode state
+  const [isManualMode, setIsManualMode] = useState(false);
+  const [newItem, setNewItem] = useState<{name: string, price: number, quantity: number}>({
+    name: '',
+    price: 0,
+    quantity: 1
+  });
+  const [isAddingItem, setIsAddingItem] = useState(false);
+  const [showAddItemForm, setShowAddItemForm] = useState(false);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -391,6 +401,72 @@ export default function BillPage() {
     }
   };
 
+  // Manual mode functions
+  const handleAddItem = async () => {
+    if (!newItem.name.trim() || newItem.price <= 0) {
+      toast.error('Please enter a valid item name and price');
+      return;
+    }
+
+    setIsAddingItem(true);
+    try {
+      const addedItem = await billService.addItem(billId, {
+        name: newItem.name.trim(),
+        price: newItem.price,
+        quantity: newItem.quantity
+      });
+
+      // Update local state
+      if (billWithItems) {
+        const updatedItems = [...(billWithItems.items || []), addedItem];
+        setBillWithItems({
+          ...billWithItems,
+          items: updatedItems
+        });
+      }
+
+      // Reset form and hide it
+      setNewItem({ name: '', price: 0, quantity: 1 });
+      setShowAddItemForm(false);
+      toast.success('Item added successfully!');
+    } catch (error) {
+      console.error('Error adding item:', error);
+      toast.error('Failed to add item');
+    } finally {
+      setIsAddingItem(false);
+    }
+  };
+
+  const handleDeleteItem = async (itemId: number) => {
+    // Check if this is the last item
+    if (billWithItems && billWithItems.items && billWithItems.items.length <= 1) {
+      toast.error('Cannot delete the last item. A bill must have at least one item.');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to delete this item?')) {
+      return;
+    }
+
+    try {
+      await billService.deleteItem(itemId);
+      
+      // Update local state
+      if (billWithItems) {
+        const updatedItems = (billWithItems.items || []).filter(item => item.id !== itemId);
+        setBillWithItems({
+          ...billWithItems,
+          items: updatedItems
+        });
+      }
+
+      toast.success('Item deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      toast.error('Failed to delete item');
+    }
+  };
+
   const startEditingItem = (item: BillItem) => {
     setEditingItem(item.id);
     setEditItemData({
@@ -541,15 +617,21 @@ export default function BillPage() {
           <>
             {/* Bill Info */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold text-gray-900">{bill?.name}</h2>
-                <button
-                  onClick={startEditingTaxTip}
-                  className="text-primary hover:text-primary-dark hover:bg-indigo-50 p-1.5 rounded-lg transition-colors flex items-center justify-center"
-                  title="Edit tax and tip / service amounts"
-                >
-                  <PencilIcon className="w-4 h-4" />
-                </button>
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-2xl font-bold text-gray-900">{bill?.name}</h2>
+                  {/* Manual Mode Toggle */}
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={isManualMode}
+                      onChange={() => setIsManualMode(!isManualMode)}
+                      className="sr-only peer"
+                    />
+                    <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    <span className="ms-3 text-sm font-medium text-gray-700">Manual Mode</span>
+                  </label>
+                </div>
               </div>
               
               {editingTaxTip ? (
@@ -582,8 +664,20 @@ export default function BillPage() {
                         type="number"
                         step="0.01"
                         min="0"
-                        value={editTaxTipData.tax_amount}
-                        onChange={(e) => setEditTaxTipData({...editTaxTipData, tax_amount: parseFloat(e.target.value) || 0})}
+                        value={editTaxTipData.tax_amount === 0 ? '' : editTaxTipData.tax_amount}
+                        placeholder="0.00"
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // If the field is empty, set to 0, otherwise parse the value
+                          const numValue = value === '' ? 0 : parseFloat(value) || 0;
+                          setEditTaxTipData({...editTaxTipData, tax_amount: numValue});
+                        }}
+                        onFocus={(e) => {
+                          // Clear the field if it's 0 when user focuses
+                          if (editTaxTipData.tax_amount === 0) {
+                            e.target.value = '';
+                          }
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:border-primary focus:ring-primary"
                       />
                     </div>
@@ -595,8 +689,20 @@ export default function BillPage() {
                         type="number"
                         step="0.01"
                         min="0"
-                        value={editTaxTipData.tip_amount}
-                        onChange={(e) => setEditTaxTipData({...editTaxTipData, tip_amount: parseFloat(e.target.value) || 0})}
+                        value={editTaxTipData.tip_amount === 0 ? '' : editTaxTipData.tip_amount}
+                        placeholder="0.00"
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // If the field is empty, set to 0, otherwise parse the value
+                          const numValue = value === '' ? 0 : parseFloat(value) || 0;
+                          setEditTaxTipData({...editTaxTipData, tip_amount: numValue});
+                        }}
+                        onFocus={(e) => {
+                          // Clear the field if it's 0 when user focuses
+                          if (editTaxTipData.tip_amount === 0) {
+                            e.target.value = '';
+                          }
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:border-primary focus:ring-primary"
                       />
                     </div>
@@ -604,19 +710,28 @@ export default function BillPage() {
                 </div>
               ) : (
                 // Display Mode for Tax and Tip
-                <div className="space-y-2 sm:grid sm:grid-cols-2 sm:gap-4 sm:space-y-0 text-sm mb-4">
-                  <div className="flex justify-between sm:block">
-                    <span className="text-gray-500">Tax Amount:</span>
-                    <span className="ml-2 font-medium text-gray-900">
-                      {formatCurrency(bill?.tax_amount || 0)}
-                    </span>
+                <div className="flex items-center justify-between text-sm mb-4">
+                  <div className="flex-1 grid grid-cols-2 gap-4">
+                    <div className="flex justify-between sm:block">
+                      <span className="text-gray-500">Tax Amount:</span>
+                      <span className="ml-2 font-medium text-gray-900">
+                        {formatCurrency(bill?.tax_amount || 0)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between sm:block">
+                      <span className="text-gray-500">Tip/Service Amount:</span>
+                      <span className="ml-2 font-medium text-gray-900">
+                        {formatCurrency(bill?.tip_amount || 0)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between sm:block">
-                    <span className="text-gray-500">Tip/Service Amount:</span>
-                    <span className="ml-2 font-medium text-gray-900">
-                      {formatCurrency(bill?.tip_amount || 0)}
-                    </span>
-                  </div>
+                  <button
+                    onClick={startEditingTaxTip}
+                    className="text-primary hover:text-primary-dark hover:bg-indigo-50 p-1.5 rounded-lg transition-colors flex items-center justify-center ml-4"
+                    title="Edit tax and tip / service amounts"
+                  >
+                    <PencilIcon className="w-4 h-4" />
+                  </button>
                 </div>
               )}
               
@@ -719,11 +834,27 @@ export default function BillPage() {
             {/* Extracted Items Section */}
             {billWithItems && billWithItems.items && billWithItems.items.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                  Extracted Items
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    Extracted Items
+                  </h3>
+                  {isManualMode && (
+                    <button
+                      onClick={() => {
+                        setNewItem({ name: '', price: 0, quantity: 1 });
+                        setShowAddItemForm(true);
+                      }}
+                      className="px-3 py-1.5 bg-primary hover:bg-primary-dark text-white rounded-lg text-sm font-medium transition-colors"
+                    >
+                      + Add Item
+                    </button>
+                  )}
+                </div>
                 <p className="text-sm text-gray-600 mb-4">
-                  Click on any item to edit the quantity or price if the AI made a mistake
+                  {isManualMode 
+                    ? 'Manual mode: Click edit to modify items, or add new items below'
+                    : 'Click on any item to edit the quantity or price if the AI made a mistake'
+                  }
                 </p>
                 <div className="space-y-3">
                   {billWithItems.items.map((item) => (
@@ -769,8 +900,20 @@ export default function BillPage() {
                                 type="number"
                                 step="0.01"
                                 min="0"
-                                value={editItemData.price}
-                                onChange={(e) => setEditItemData({...editItemData, price: parseFloat(e.target.value) || 0})}
+                                value={editItemData.price === 0 ? '' : editItemData.price}
+                                placeholder="0.00"
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // If the field is empty, set to 0, otherwise parse the value
+                                  const numValue = value === '' ? 0 : parseFloat(value) || 0;
+                                  setEditItemData({...editItemData, price: numValue});
+                                }}
+                                onFocus={(e) => {
+                                  // Clear the field if it's 0 when user focuses
+                                  if (editItemData.price === 0) {
+                                    e.target.value = '';
+                                  }
+                                }}
                                 className="w-full px-2 py-1 text-sm border border-gray-300 rounded text-gray-900 focus:border-primary focus:ring-primary"
                               />
                             </div>
@@ -782,7 +925,12 @@ export default function BillPage() {
                                 type="number"
                                 min="1"
                                 value={editItemData.quantity}
-                                onChange={(e) => setEditItemData({...editItemData, quantity: parseInt(e.target.value) || 1})}
+                                placeholder="1"
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  const numValue = parseInt(value) || 1;
+                                  setEditItemData({...editItemData, quantity: numValue});
+                                }}
                                 className="w-full px-2 py-1 text-sm border border-gray-300 rounded text-gray-900 focus:border-primary focus:ring-primary"
                               />
                             </div>
@@ -805,18 +953,109 @@ export default function BillPage() {
                             <span className="font-semibold text-gray-900">
                               {formatCurrency(item.price * item.quantity)}
                             </span>
+                            <div className="flex items-center gap-1">
                               <button
-                               onClick={() => startEditingItem(item)}
-                               className="text-primary hover:text-primary-dark hover:bg-indigo-50 p-1.5 rounded-lg transition-colors flex items-center justify-center"
-                               title="Edit item"
+                                onClick={() => startEditingItem(item)}
+                                className="text-primary hover:text-primary-dark hover:bg-indigo-50 p-1.5 rounded-lg transition-colors flex items-center justify-center"
+                                title="Edit item"
                               >
-                               <PencilIcon className="w-4 h-4" />
-                             </button>
+                                <PencilIcon className="w-4 h-4" />
+                              </button>
+                              {isManualMode && (
+                                <button
+                                  onClick={() => handleDeleteItem(item.id)}
+                                  disabled={billWithItems && billWithItems.items && billWithItems.items.length <= 1}
+                                  className={`p-1.5 rounded-lg transition-colors flex items-center justify-center ${
+                                    billWithItems && billWithItems.items && billWithItems.items.length <= 1
+                                      ? 'text-gray-400 cursor-not-allowed'
+                                      : 'text-red-600 hover:text-red-700 hover:bg-red-50'
+                                  }`}
+                                  title={
+                                    billWithItems && billWithItems.items && billWithItems.items.length <= 1
+                                      ? "Cannot delete the last item"
+                                      : "Delete item"
+                                  }
+                                >
+                                  <TrashIcon className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       )}
                     </div>
                   ))}
+                  
+                  {/* Add New Item Form */}
+                  {isManualMode && showAddItemForm && (
+                    <div className="border-2 border-dashed border-primary rounded-lg p-4 bg-primary/5">
+                      <h4 className="font-medium text-gray-900 mb-3">Add New Item</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                        <div className="sm:col-span-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Item Name
+                          </label>
+                          <input
+                            type="text"
+                            value={newItem.name}
+                            onChange={(e) => setNewItem({...newItem, name: e.target.value})}
+                            placeholder="Enter item name"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:border-primary focus:ring-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Price
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={newItem.price === 0 ? '' : newItem.price}
+                            onChange={(e) => setNewItem({...newItem, price: parseFloat(e.target.value) || 0})}
+                            placeholder="0.00"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:border-primary focus:ring-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Quantity
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={newItem.quantity}
+                            onChange={(e) => setNewItem({...newItem, quantity: parseInt(e.target.value) || 1})}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:border-primary focus:ring-primary"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between mt-3">
+                        <span className="text-sm text-gray-600">
+                          Total: {formatCurrency(newItem.price * newItem.quantity)}
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setNewItem({ name: '', price: 0, quantity: 1 });
+                              setShowAddItemForm(false);
+                            }}
+                            className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg text-sm font-medium transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={handleAddItem}
+                            disabled={isAddingItem}
+                            className="px-3 py-1.5 bg-primary hover:bg-primary-dark disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+                          >
+                            {isAddingItem ? 'Adding...' : 'Add Item'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="pt-3 border-t border-gray-200 gap-4">
                     <div className="flex justify-between items-center font-semibold gap-4">
                       <span className="text-gray-900">Subtotal:</span>
@@ -882,7 +1121,7 @@ export default function BillPage() {
     return 1; // Default to step 1
   };
 
-  const stepLabels = ['Bill Created', 'Image Uploaded', 'Processing Complete'];
+  const stepLabels = ['Bill Created', 'Image / Items Uploaded', 'Processing Complete'];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1120,7 +1359,7 @@ export default function BillPage() {
                         setSelectedImage(null);
                         setImagePreview(null);
                       }}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors flex items-center justify-center"
                     >
                       <XMarkIcon className="w-4 h-4" />
                     </button>

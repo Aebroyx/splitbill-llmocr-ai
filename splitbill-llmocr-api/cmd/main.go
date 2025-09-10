@@ -255,6 +255,13 @@ func main() {
 		items := api.Group("/items")
 		{
 			items.PUT("/:id", billHandler.UpdateItem)
+			items.DELETE("/:id", billHandler.DeleteItem)
+		}
+
+		// Bill items routes
+		billItems := api.Group("/bills/:id/items")
+		{
+			billItems.POST("/", billHandler.AddItem)
 		}
 
 		// Protected routes (with auth middleware)

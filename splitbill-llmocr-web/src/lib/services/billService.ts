@@ -76,7 +76,13 @@ export interface ManualItemData {
   total: number;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+export interface AddItemPayload {
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088';
 
 export const billService = {
   async createBill(payload: CreateBillPayload): Promise<Bill> {
@@ -318,6 +324,33 @@ export const billService = {
         throw new Error((error.response.data as { message: string }).message);
       }
       throw new Error('Failed to process manual data');
+    }
+  },
+
+  async addItem(billId: string, item: AddItemPayload): Promise<BillItem> {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/bills/${billId}/items/`, item, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      return response.data as BillItem;
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'data' in error.response && error.response.data && typeof error.response.data === 'object' && 'message' in error.response.data) {
+        throw new Error((error.response.data as { message: string }).message);
+      }
+      throw new Error('Failed to add item');
+    }
+  },
+
+  async deleteItem(itemId: number): Promise<void> {
+    try {
+      await axios.delete(`${API_BASE_URL}/api/items/${itemId}`);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'data' in error.response && error.response.data && typeof error.response.data === 'object' && 'message' in error.response.data) {
+        throw new Error((error.response.data as { message: string }).message);
+      }
+      throw new Error('Failed to delete item');
     }
   },
 };
